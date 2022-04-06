@@ -94,15 +94,17 @@ def create_map(ax, map_path="map1.pgm", scale=1.0, offset=np.zeros(2)):
     ax.axis("off")
 
 
-def plot_Qvalues_map(Q_rpls, H_rpls=None, params=params, r_state=0, epoch='learning',
+def plot_Qvalues_map(Q_rpls, H_rpls=None, H_trajs=None, params=params, r_state=0, epoch='learning',
                     norm_across_rep=True, deterministic=True, fig_title='Q-value map(s)', 
-                    save=True, fig_name='', fontsize=14,
+                    fontsize=14, leg=True, title_ax=True,
                     show_trans=False,
                     cmap_Q=plt.cm.Greys, cmap_traj='rainbow',
-                    sz=50, sz_r=100, edgc='k', edgw=1, c='white', scale=3):
+                    sz=50, sz_r=100, edgc='k', edgw=1, c='white', scale=3,
+                    axes=None):
     '''Plots a Q value map and a trajectoryfor the specified replays.
     :param Q_rpls: Dictionary containing the Q matrices to be plotted for each replay type.
-    :params H_rpls: Dictionary containnig the trajectories to be plotted for each replay type.
+    :params H_rpls: Dictionary containnig the exploration or replayed transitions to be plotted for each replay type, in gradient.
+    :params H_traj: Dictionary containing additional trajectories to be plotted, in dotted lines.
     '''
     centre_states = np.array(params['state_coords']) # coordinates of states centres (x,y)
     vor = create_voronoid(params)
@@ -112,17 +114,27 @@ def plot_Qvalues_map(Q_rpls, H_rpls=None, params=params, r_state=0, epoch='learn
         i_s0 = params['starting_points']['learning']
     if epoch == 'generalization':
         i_s0 = params['starting_points']['generalization'][0]
+    norm = 1 # no normalization by default
     if norm_across_rep: # find the maximum Q across all replay types
         norm = max([np.max(Q_rpls[rep]) for rep in params['replay_refs']])
         if norm == 0:
             norm = 1
-    else:
-        norm = 1 # no normalization
 
     n_plots = len(params['replay_refs'])
     fig, axes = plt.subplots(1, n_plots, figsize=(scale*n_plots,scale))
+    if deterministic==True:
+        add_title = ' - Deterministic environment'
+    if deterministic==False:
+        add_title = ' - Stochastic environment'
+    else: # do not specify
+        add_title = ''
+    fig.suptitle(fig_title+add_title, y=1.15, fontsize=15)
+
     for i, rep in enumerate(params['replay_refs']):
-        ax = axes[i]
+        if n_plots > 1:
+            ax = axes[i]
+        else:
+            ax = axes
         Q = Q_rpls[rep]/norm
         colormap = fill_voronoid(ax, Q, vor, cmap=cmap_Q)
         create_map(ax, map_path="Figures/map1.pgm", scale=0.08, offset=np.array([-0.2, 0.2]))
@@ -131,27 +143,25 @@ def plot_Qvalues_map(Q_rpls, H_rpls=None, params=params, r_state=0, epoch='learn
         if show_trans:
             show_transitions(ax, x_states, y_states, T)
         if H_rpls is not None:
-            show_trajectory(ax, H_rpls[rep], x_states, y_states, cmap_name=cmap_traj, jitter=True)
+            show_trajectory(ax, H_rpls[rep], x_states, y_states, cmap_name=cmap_traj)
+        if H_trajs is not None:
+            show_trajectory(ax, H_trajs[rep], x_states, y_states, uniform_col=True)
 
         ax.scatter(centre_states[i_s0, 0], centre_states[i_s0, 1], label='Initial state', color=c, edgecolor=edgc, linewidth=edgw, s=sz, zorder=100)
         ax.scatter(centre_states[i_r, 0], centre_states[i_r, 1], label='Reward state', marker="*", color=c, edgecolor=edgc, linewidth=edgw, s=sz_r, zorder=100)
-        if i == 0: # add legend for remarkable states only on the first plot
-            ax.legend(bbox_to_anchor=[0, 0], loc='center', fontsize=13)
-        ax.set_title(params['replay_types'][rep], fontsize=14)
         ax.set_xlim(-1.5, 1.2)
         ax.set_ylim(-1, 1)
+
+        if leg and i == 0: # add legend for remarkable states only on the first plot
+            ax.legend(bbox_to_anchor=[0, 0], loc='center', fontsize=13)
+        if title_ax:
+            ax.set_title(params['replay_types'][rep], fontsize=14)
 
     # Set a common colorbar
     cbar = fig.colorbar(colormap, ax=axes, fraction=0.01)
     cbar.set_label('Maximum Q-value\nin each state (a.u.)', fontsize=12)
-    if deterministic==True:
-        add_title = ' - Deterministic environment'
-    if deterministic==False:
-        add_title = ' - Stochastic environment'
-    else: # do not specify
-        add_title = ''
-    fig.suptitle(fig_title+add_title, y=1.15, fontsize=15)
-    if save:
-        plt.savefig('Figures/Qmap_'+fig_name)
     plt.show()
+
+
+
 

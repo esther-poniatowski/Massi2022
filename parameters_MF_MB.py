@@ -12,7 +12,7 @@ check_reload = False # signal successful importation at the end of the file
 # ********************** SIMULATION PARAMETERS ************************ #
 
 # Learning parameters
-alpha = 0.6 # learning rate (previous : 0.56)
+alpha = 0.8 # learning rate (previous : 0.6)
 alpha_vals = np.round(0.1*np.arange(0,11), decimals=1) # test values for optimizing this parameter
 beta = 15.0
 beta_vals = {'learning':beta, 'generalization':10.0, 'fast_test':beta} # temperature for softmax
@@ -36,8 +36,9 @@ replay_types = {0: 'No replay',
                 1: 'Backward replay', 
                 2: 'Random replay', 
                 3: 'Most diverse replay',
-                4: 'Prioritized sweeping'}
-replay_refs = list(replay_types.keys()) # indices of the replays
+                4: 'Prioritized sweeping',
+                -1: 'Optimal policy'} # just for comparison
+replay_refs = [rep for rep in replay_types.keys() if rep!=-1] # indices of the replays
 n_types_replays = len(replay_types) - 1 # exclude "no replay"
 RR = 20  # number of times each sequence is replayed
 RSS = 90  # replayed sequences size = length of replayed sequences
@@ -217,7 +218,7 @@ params = {'n_individuals': n_individuals, 'n_trials': n_trials,
             'perc': perc, 'window': window,
             'n_types_replays': n_types_replays, 'replay_types':replay_types, 'replay_refs':replay_refs,
             'nA': nA, 'nS':len_T, 'state_coords': state_coords, 'forbidden_state_action': forbidden_state_action, 
-            'T_det': T_det, 'T_stoch': T_stoch, 'T': T_det}
+            'T_det': T_det, 'T_stoch': T_stoch, 'T': T_det, 'deterministic':True}
             # transition matrix deterministic by default, to be set at the beginning of simulation
 
 # Select parameters according to the goal (deterministic vs stochastic, full simulation vs. fast test, types of replays tested)
