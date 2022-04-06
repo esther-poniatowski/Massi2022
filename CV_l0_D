@@ -1,9 +1,0 @@
-,Replay type,Individual,Convergence trial,Performance at Convergence,Time to Convergence
-0,0,0,6,16,365
-1,0,1,5,25,375
-2,1,0,1,10,93
-3,1,1,1,12,78
-4,2,0,1,10,93
-5,2,1,1,12,78
-6,3,0,1,13,96
-7,3,1,2,24,214
