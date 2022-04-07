@@ -22,7 +22,8 @@ colors_replays = {0: 'royalblue',
                   1: 'orange',
                   2: 'forestgreen',
                   3: 'orchid',
-                  4: 'k'} 
+                  4: 'k',
+                  -1:'white'} 
 
 
 # ********** AUXILIARY FUNCTIONS *************** #
@@ -423,3 +424,43 @@ def compare_distributions(EMD, Stats=None, params=params):
     fig.colorbar(im)
     plt.show()
 
+def plot_EMD_distance(EMD, params=params, fontsize=10):
+    n_distrib = EMD.shape[0]
+    maxEMD = np.max(EMD)
+    minEMD = np.min(EMD)
+    dx = 0.1*(maxEMD-minEMD)
+    fig, axes = plt.subplots(n_distrib, n_distrib, figsize=(6,6))
+    for j in range(n_distrib):
+        for k in range(n_distrib):
+            ax = axes[j,k]
+            ax.set_xlim(minEMD-dx, maxEMD+dx)
+            if k < j:
+                data = EMD[j,k,:]
+                h = sns.distplot(data, hist=False, kde=True, rug=True,
+                             color='k', rug_kws={'color': 'gray'}, ax=ax)
+                ax.axvline(np.median(data), color='k', linestyle='dashed')
+                fig_utl.hide_spines(ax, sides=['left','right','top'])
+                fig_utl.hide_ticks(ax, 'y')
+                if k == n_distrib-1:
+                    ax.set_ylabel('EMD')
+            elif j == k:
+                ax.axvline(0, color='k', linestyle='dashed')
+                fig_utl.hide_spines(ax, sides=['left','right','top'])
+                fig_utl.hide_ticks(ax, 'y')
+            else:
+                fig_utl.hide_spines(ax, sides=['left','right','top', 'bottom'])
+                fig_utl.hide_ticks(ax, 'y')
+                fig_utl.hide_ticks(ax, 'x')
+    refs = params['replay_refs'].copy()
+    if EMD.shape[0] > len(params['replay_refs']): # also display distance to the optimal distribution
+        refs.append(-1)
+    for j in range(n_distrib):
+        ax = axes[j,0]
+        props = dict(facecolor=colors_replays[refs[j]], alpha=0.5, boxstyle='round')
+        ax.text(-0.1, 0.5, params['replay_types'][refs[j]], transform=ax.transAxes, 
+                fontsize=fontsize, va='center', ha='right', bbox=props)
+        ax = axes[n_distrib-1,j]
+        props = dict(facecolor=colors_replays[refs[j]], alpha=0.5, boxstyle='round')
+        ax.text(0.5, -0.25, params['replay_types'][refs[j]], transform=ax.transAxes, 
+                fontsize=fontsize, ha='right', va='top', bbox=props, rotation=45)
+    plt.show()

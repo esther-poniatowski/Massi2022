@@ -463,11 +463,13 @@ def compute_population_distances(EMD, KS, params=params):
     Stat_emd = np.zeros((EMD_pop.shape[0],EMD_pop.shape[1],2))
     for j in range(EMD_pop.shape[0]):
         for k in range(EMD_pop.shape[1]):
-            try:
-                Wvalue, pvalue = Stat_emd[j,k] = stats.wilcoxon(EMD[j,k,:])
+            if k != j: # different groups
+                Wvalue, pvalue = stats.wilcoxon(EMD[j,k,:])
                 Stat_emd[j,k,0] = Wvalue
                 Stat_emd[j,k,1] = pvalue
-            except ValueError:
+            else: # same groups
                 Stat_emd[j,k,0] = 0
                 Stat_emd[j,k,1] = 1
+    print(Stat_emd[:,:,1])
     return EMD_pop, Stat_emd
+

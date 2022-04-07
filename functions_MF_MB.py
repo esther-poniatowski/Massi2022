@@ -77,19 +77,6 @@ def V_from_Q(Q, params):
 
 # ********** REPLAY 1 - BACKWARD REPLAY *************** #
 
-def replay_b(M_buffer, Q, params, convergence=True):
-    '''Replay type : Backward sequences.
-    M_buffer is already ordered in backward order.
-    :param M_buffer: memory buffer, storing all the transitions (s0,a,s1,r) to be replayed
-    :param Q: Q-value matrix (numpy array)
-    :return Q: Updated Q-value matrix (numpy array)
-    '''
-    for repet in range(params['RR']): # repeating the sequence a number of times
-        for (s0, a, s1, r) in M_buffer: 
-            Qnew = Temporal_Difference_Learning(Q, s0, s1, a, r, params)
-            Q[s0,a] = Qnew
-    return Q
-
 def replay_b(M_buffer, Q, params, convergence=True, RRmax=1000):
     '''Replay type : Backward sequences.
     M_buffer is already ordered in backward order.
@@ -99,22 +86,21 @@ def replay_b(M_buffer, Q, params, convergence=True, RRmax=1000):
     '''
     if convergence:
         RR = RRmax
-        DQ = [[] for repet in range(RR)]
-        for repet in range(RR):  # repeating the sequence a number of times
-            if repet == RR - 1:
-                print('More than {} replays repetitions needed in MF algorithm.'.format(RRmax))
-                # print(repet, max(DQ[repet-1]), DQ[repet-1])
-            if repet == 0 or max(DQ[repet-1]) > params['epsilon_p']:
-                for (s0, a, s1, r) in M_buffer:
-                    Qnew = Temporal_Difference_Learning(Q, s0, s1, a, r, params)
-                    dQ = Qnew - Q[s0, a]
-                    Q[s0, a] = Qnew
-                    DQ[repet].append(abs(dQ))
-            else:
-                break
     else:
         RR = params['RR']
-        for repet in range(RR):  # repeating the sequence a number of times
+    for repet in range(RR): # repeating the sequence a number of times
+        if convergence: # replay while the update magnitude is above threshold
+            if (repet == RR - 1):
+                print('More than {} replays repetitions needed in MF algorithm.'.format(RRmax))
+                # print(repet, max(DQ[repet-1]), DQ[repet-1])
+            while repet == 0 or sum(DQ) > params['epsilon_p']: 
+                DQ = []
+                for (s0, a, s1, r) in M_buffer:
+                    Qnew = Temporal_Difference_Learning(Q, s0, s1, a, r, params)
+                    dQ = Qnew - Q[s0,a]
+                    Q[s0,a] = Qnew
+                    DQ[repet].append(abs(dQ))
+        else: # replay the fixed number of times RR
             for (s0, a, s1, r) in M_buffer:
                 Qnew = Temporal_Difference_Learning(Q, s0, s1, a, r, params)
                 Q[s0, a] = Qnew
@@ -236,36 +222,13 @@ def update_memory_d(M_buffer, D_seq, H, params):
 
 # ********** REPLAY 4 - UPDATE MEMORY BUFFER WITH SURPRISE *************** #
 
-def replay_p(Q, hatP, hatR, M_buffer, Delta, params):
-    '''Replay type : Prioritized sweeping, for MB agent.
-    Update in priority states associated with a greater surprise, i.e. reward prediction error, and to their predecessors. 
-    :param M_buffer: memory of transitions to be replayed (list of (s0, a, r, s1))
-    :param Delta: list of priority values associated with each transition
-    WARNING : M_buffer and Delta are sorted in *increasing* order, so replay must start by the last element
-    :param Q: Q-value matrix (numpy array)
-    :return Q: updated Q-value matrix (numpy array)
-    :return M_buffer: updated memory buffer with predecessors
-    :return Delta: associated priorities
-    '''
-    h_repl = []
-    for repet in range(params['RR']*params['RSS']): # number of replayed transitions, to be equal with other replay types
-        if len(Delta) > 0: # buffer not empty
-            s0, a, s1, r = M_buffer[-1] # take the last element, with higher priority
-            delta = Delta[-1]
-            Qnew = Value_Iteration(Q, hatP, hatR, s0, a, params)
-            dQ = Qnew - Q[s0,a]
-            Q[s0,a] = Qnew # update Q matrix in place
-            dnew = abs(dQ) # new priority = prediction error
-            del Delta[-1] # remove last element just been replayed
-            del M_buffer[-1]
-            update_memory_p(s0, a, s1, r, dnew, M_buffer, Delta, params) # reinsert this transition with new priority
-            introduce_predecessors(s0, delta, hatP, hatR, Q, M_buffer, Delta, params) # insert its predecessors
-            h_repl.append((s0, a, s1, r))
-    return Q, M_buffer, Delta, h_repl
+def one_replay_p(Q, hatP, hatR, M_buffer, Delta, params, method_p='predecessor'):
+        return Q, M_bufffer, Delta
 
 def replay_p(Q, hatP, hatR, M_buffer, Delta, params, convergence=True, RRmax=1000, method_p='predecessor'):
     '''Replay type : Prioritized sweeping, for MB agent.
     Update in priority states associated with a greater surprise, i.e. reward prediction error, and to their predecessors. 
+    The convergence criterion is implemented straightforward when the buffer is empty.
     :param Q: Q-value matrix (numpy array)
     :param M_buffer: memory of transitions to be replayed (list of (s0, a, r, s1))
     :param Delta: list of priority values associated with each transition
@@ -281,40 +244,27 @@ def replay_p(Q, hatP, hatR, M_buffer, Delta, params, convergence=True, RRmax=100
     :return Delta: associated priorities
     '''
     h_repl = []
-    delta = 0
     if convergence:
         RR = RRmax
     else:
         RR = params['RR']
     for repet in range(RR):
-        if convergence and (repet == RR - 1):
+        if convergence and repet == RR - 1:
             # raise ValueError('More than 1000 replays repetitions needed in MB algorithm!')
             print('More than 1000 replays repetitions needed in MB algorithm.')
-            print(delta)
-        if repet == 0 or delta > params['epsilon_p']:
-            for rr in range(params['RSS']):
-                if len(M_buffer) != 0: # buffer not empty
-                    s0, a, s1, r = M_buffer[-1] # take the last element, with higher priority
-                    delta = Delta[-1]
-                    Qnew = Value_Iteration(Q, hatP, hatR, s0, a, params)
-                    dQ = Qnew - Q[s0,a]
-                    delta_new = abs(dQ) # new priority = prediction error
-                    # print('Mbuffer', M_buffer)
-                    # print('Delta', Delta)
-                    del Delta[-1] # remove last element just been replayed
-                    del M_buffer[-1]
-                    Q[s0,a] = Qnew # update Q matrix in place
-                    update_memory_p(s0, a, s1, r, delta_new, M_buffer, Delta, params) # reinsert this transition with new priority
-                    introduce_predecessors(s0, delta, hatP, hatR, Q, M_buffer, Delta, params, method_p=method_p) # insert its predecessor
-                    # print('After predecessors')
-                    # print('Mbuffer', M_buffer)
-                    # print('Delta', Delta)
-                    # print('-------')
-                    h_repl.append((s0, a, s1, r))
-                else: # no more transition to be replayed -> break the *outer* loop by setting delta = 0
-                    delta = 0
-        else:
-            break
+        for rr in range(params['RSS']):
+            if len(M_buffer) != 0: # buffer not empty
+                s0, a, s1, r = M_buffer[-1] # replay the last element, with higher priority
+                delta = Delta[-1]
+                Qnew = Value_Iteration(Q, hatP, hatR, s0, a, params)
+                dQ = Qnew - Q[s0,a]
+                delta_new = abs(dQ) # new priority = prediction error
+                del Delta[-1] # remove last element just been replayed
+                del M_buffer[-1]
+                Q[s0,a] = Qnew # update Q matrix in place
+                update_memory_p(s0, a, s1, r, delta_new, M_buffer, Delta, params) # reinsert this transition with new priority
+                introduce_predecessors(s0, delta, hatP, hatR, Q, M_buffer, Delta, params, method_p=method_p) # insert its predecessor
+                h_repl.append((s0, a, s1, r)) # save the replayed transition
     return Q, M_buffer, Delta, h_repl
 
 
@@ -357,32 +307,6 @@ def update_memory_p(s0, a, s1, r, delta, M_buffer, Delta, params):
                 del Delta[i_b]
                 del M_buffer[i_b]
     return M_buffer, Delta
-
-def introduce_predecessors(s0, delta0, hatP, hatR, Q, M_buffer, Delta, params, method_p='predecessor'):
-    '''Introduces (or not) predecessors (s, u) of state s0.
-    The priority of a predecessor is delta*T[s,u,s0].
-    Those updates have to be made during the *replay phase*.
-    :param s0: arrival state, taken from the buffer.
-    :param delta: priority associated with the transition involving s0.'''
-    for u in range(params['nA']): # for all actions which could have led to state s0
-        where_pred = hatP[:,u,s0] > 1/params['nS'] # boolean vector of length nS, spotting all previous_states which can lead to state s0 with a probability higher than 1/nS
-        # where_pred = hatP[:,u,s0] > 0
-        predecessors = np.arange(params['nS'])[where_pred] # array of predecessors' indices
-        for s_pred in predecessors :
-            Qnew = Value_Iteration(Q, hatP, hatR, s_pred, u, params)
-            dQ = Qnew - Q[s_pred,u]
-            delta_pred = abs(dQ) # new priority = prediction error
-            if method_p == 'arrival': 
-                # priority = priority of the arrival state weigthed by the transition probability to s0
-                delta = delta0*hatP[s_pred,u,s0]
-            elif method_p == 'predecessor': 
-                # priority = surprise of the transition
-                delta = delta_pred
-            r_pred = 0 # as in Mehdi's code, or rather in r_pred = hatR[s_pred, u] ?
-            if delta_pred > 0: # to prevent pathological cases, see WARNING in replay_p
-                update_memory_p(s_pred, u, s0, r_pred, delta, M_buffer, Delta, params) # insert predecessor in buffer
-    return M_buffer, Delta
-
 
 def introduce_predecessors(s0, delta0, hatP, hatR, Q, M_buffer, Delta, params, method_p='predecessor'):
     '''Introduces (or not) predecessors (s, u) of state s0.
