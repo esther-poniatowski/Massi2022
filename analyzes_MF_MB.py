@@ -247,10 +247,12 @@ def test_pairwise(Data, var_name, thres=0.05, params=params, display=True, test=
                               'pvalue': [0.0 for p in pairs]})
     significant = []
     for p in pairs: # select groups
-        g0 = Data.loc[Data['Replay type']==p[0]]
-        g1 = Data.loc[Data['Replay type']==p[1]] 
+        g0 = Data[var_name].loc[Data['Replay type']==p[0]]
+        g1 = Data[var_name].loc[Data['Replay type']==p[1]] 
         g0 = g0.dropna() # remove None lines
-        g1 = g1.dropna() # remove None lines
+        g1 = g1.dropna()
+        g0 = g0.to_numpy()
+        g1 = g1.to_numpy()
         if test == 'mannwhitney':
             Uvalue, pvalue = stats.mannwhitneyu(g0, g1)
         elif test == 'kruskal':
