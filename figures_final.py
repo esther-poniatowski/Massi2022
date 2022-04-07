@@ -158,15 +158,15 @@ def figure_alpha_selection(params=params,
 # ********** Q-VALUE PROPAGATION *************** #
 
 def plot_Q_map(ax, Q, params=params, 
-            i_s0=params['starting_points']['learning'], i_r=params['reward_states'][0],
+            s0=params['starting_points']['learning'], s_rw=params['reward_states'][0],
             cmap_Q=plt.cm.Greys, sz=50, sz_r=100, edgc='k', edgw=1, c='white', scale=0.08):
     centre_states = np.array(params['state_coords'])
     vor = create_voronoid(params)
     colormap = fill_voronoid(ax, Q, vor, cmap=cmap_Q)
     create_map(ax, map_path="Figures/map1.pgm", scale=scale, offset=np.array([-0.2, 0.2]))
     scispa.voronoi_plot_2d(vor, ax=ax, show_points=False, show_vertices=False, line_colors='k')
-    ax.scatter(centre_states[i_s0, 0], centre_states[i_s0, 1], label='Initial state', color=c, edgecolor=edgc, linewidth=edgw, s=sz, zorder=1000)
-    ax.scatter(centre_states[i_r, 0], centre_states[i_r, 1], label='Reward state', marker="*", color=c, edgecolor=edgc, linewidth=edgw, s=sz_r, zorder=1000)
+    ax.scatter(centre_states[s0, 0], centre_states[s0, 1], label='Initial state', color=c, edgecolor=edgc, linewidth=edgw, s=sz, zorder=1000)
+    ax.scatter(centre_states[s_rw, 0], centre_states[s_rw, 1], label='Reward state', marker="*", color=c, edgecolor=edgc, linewidth=edgw, s=sz_r, zorder=1000)
     ax.set_xlim(-1.5, 1.2)
     ax.set_ylim(-1, 1)
     ax.tick_params(labelcolor=(1.0,1.0,1.0, 0.0), top='off', bottom='off', left='off', right='off')
@@ -202,9 +202,9 @@ def figure_Qvalues(det=True, trials=[0,1,24,25], params=params,
         H_rpls = Dl_indiv[t]['h_repl']
         H_trajs = Dl_indiv[t]['h_explo']
         if t < 25 :
-            i_r = params['reward_states'][0]
+            s_rw = params['reward_states'][0]
         else:
-            i_r = params['reward_states'][1]
+            s_rw = params['reward_states'][1]
 
         for col in range(1, n_cols+1):
             i_ax = (row-1)*n_cols + col # index of the plot
@@ -218,7 +218,7 @@ def figure_Qvalues(det=True, trials=[0,1,24,25], params=params,
             if norm == 0 :
                 norm = 1
             Q /= norm
-            colormap = plot_Q_map(ax, Q, params=params, i_r=i_r)
+            colormap = plot_Q_map(ax, Q, params=params, s_rw=s_rw)
             show_trajectory(ax, H_rpls[rep], x_states, y_states)
             show_trajectory(ax, H_trajs[rep], x_states, y_states, uniform_col=True)
             if i_ax == 1: # add legend for remarkable states only on the first plot
@@ -237,37 +237,7 @@ def figure_Qvalues(det=True, trials=[0,1,24,25], params=params,
 
 # ********** HISTOGRAMS OF Q-VALUES *************** #
 
-from mpl_toolkits.axes_grid1 import Divider, Size
-
-def fix_axes_size_incm(fig, ax, axew, axeh):
-    axew = axew/2.54
-    axeh = axeh/2.54
-    # use the tight layout function to get a good padding size for axes labels
-    fig.tight_layout()
-    # obtain the current ratio values for padding and fix size
-    oldw, oldh = fig.get_size_inches()
-    l = ax.figure.subplotpars.left
-    r = ax.figure.subplotpars.right
-    t = ax.figure.subplotpars.top
-    b = ax.figure.subplotpars.bottom
-    # work out what the new  ratio values for padding are, and the new fig size
-    neww = axew+oldw*(1-r+l)
-    newh = axeh+oldh*(1-t+b)
-    newr = r*oldw/neww
-    newl = l*oldw/neww
-    newt = t*oldh/newh
-    newb = b*oldh/newh
-    # right(top) padding, fixed axes size, left(bottom) pading
-    hori = [Size.Scaled(newr), Size.Fixed(axew), Size.Scaled(newl)]
-    vert = [Size.Scaled(newt), Size.Fixed(axeh), Size.Scaled(newb)]
-    divider = Divider(fig, (0.0, 0.0, 1., 1.), hori, vert, aspect=False)
-    # ignore width and height of the rectangle
-    ax.set_axes_locator(divider.new_locator(nx=1, ny=1))
-    # resize the figure now, axes bigger may have become bigger than in
-    fig.set_size_inches(neww,newh)
-
-
-def figure_histograms(det=True, params=params, log=True,
+def figure_histograms(trial=24, det=True, params=params, log=True,
                     figscale=2, fontsize=10, fontsize_fig=12):
     # Recover and compute data
     if det:
@@ -276,7 +246,7 @@ def figure_histograms(det=True, params=params, log=True,
     else:
         env = '_S'
         fig_title = 'Stochastic environment'
-    Models = recover_data('Model'+env, df=False)
+    Qpop = recover_data('Qpop{}'.format(trial)+env, df=False)
     Dl0 = recover_data('Dl0'+env)
     LCl = recover_data('LCl'+env)
     LCl0, LCl1, _, _ = split_before_after_change(LCl, params=params)
@@ -284,12 +254,18 @@ def figure_histograms(det=True, params=params, log=True,
     # print(i_repr)
     Q_dict = dict(zip(params['replay_refs'], [None for rep in params['replay_refs']]))
     for rep in params['replay_refs']:
-        Q = Models['Q'][rep][i_repr]
+        Q = Qpop[rep][i_repr,:,:]
         Q_dict[rep] = Q.copy()
-    Qopt = recover_data('Qopt'+env, df=False)
+    if trial < 25:
+        Qopt = recover_data('Qoptl0'+env, df=False)
+        s_rw = params['reward_states'][0]
+    else:
+        Qopt = recover_data('Qoptl1'+env, df=False)
+        s_rw = params['reward_states'][1]
     params['replay_refs'].append(-1)
     Q_dict[-1] = Qopt
-    H = recover_data('Hpop'+env, df=False)
+    H = recover_data('Hpop'+str(trial)+env, df=False)
+    # print(H['bins'])
 
     # Set the structure of the figure
     fig = plt.figure(figsize=(5*figscale, 2.6*figscale), constrained_layout=True)
@@ -306,7 +282,7 @@ def figure_histograms(det=True, params=params, log=True,
         if norm == 0 :
             norm = 1
         Q /= norm
-        colormap = plot_Q_map(ax, Q, params=params)
+        colormap = plot_Q_map(ax, Q, params=params, s_rw=s_rw)
         
     # Plot histograms
     Axes_hist = []
@@ -317,9 +293,12 @@ def figure_histograms(det=True, params=params, log=True,
         plot_Q_distribution(H[rep], ax, color=colors_replays[rep], params=params, log=True)
     Axes_hist[0].set_ylabel('Distribution (log)', fontsize=fontsize)
     fig_utl.hide_spines(Axes_hist[0])
+    ymax = max([max(H[rep]['Q3']) for rep in params['replay_refs'] if rep != -1])
+    ymin = Axes_hist[0].get_ylim()[0]
     for ax in Axes_hist[1:]:
         fig_utl.hide_spines(ax, sides=['left','right','top'])
         fig_utl.hide_ticks(ax, 'y')
+        ax.set_ylim(ymin,ymax)
 
     ax_up = fig.add_subplot(2,1,1)
     ax_up.set_title('Q-value maps of the most representative individual', y=1.6, fontsize=fontsize_fig)

@@ -142,7 +142,7 @@ def get_individual_data_per_trial(i_indiv=0, params=params, Models0=None, conver
             Keys: replay types.
             Values: data.
     :return Performance: Dictionary containing the performance of the individual (number of actions taken on each trial) for each replay type.
-    :return Models: Dictionary containing the matrices describing the individual's learnt model of the world at the end of the simulation, for each replay type.
+    :return Models: Dictionary containing the matrices describing the individual's learnt model of the world at the end of the first learning phase (trial 24), for each replay type.
     '''
     # Initialize empty data to collect trajectories and Q matrices
     keys = ['h_explo', 'h_repl', 'Q_explo', 'Q_repl', 'Q_upd']
@@ -187,17 +187,26 @@ def get_individual_data_per_trial(i_indiv=0, params=params, Models0=None, conver
     return Data_trials, LC, Models
 
 
-def collect_Q_matrices(params=params):
-    Q_indiv = np.zeros((params['n_individuals'], params['nS'], params['nA']))
-    Data_Q = dict(zip(params['replay_refs'], [Q_indiv.copy() for rep in params['replay_refs']]))
-    for rep in params['replay_refs']:
-        for i_indiv in range(params['n_individuals']):
-            set_seed(i_indiv) # set seed for this individual
-            Q, hatP, hatR, N, M_buffer, D_seq, Delta = None, None, None, None, None, None, None
-            for trial in range(params['n_trials']):
-                H, Q, hatP, hatR, N, M_buffer, D_seq, Delta, h_explo, h_repl, Q_explo, Q_repl = trial_Q_learning(replay_type=rep, params=params, Q=Q, hatP=hatP, hatR=hatR, N=N, M_buffer=M_buffer, D_seq=D_seq, Delta=Delta)
-            Data_Q[rep][i_indiv,:,:] = Q.copy()
-    return Data_Q
+def collect_Q_matrices(trial, params=params, deterministic=True, save=True):
+    '''Gathers all Q matrices of all individuals on a given trial.
+    :param trial: Number of the trial of interest.
+    :return Q_pop: Dictionary containing the population Q matrices, splitted according to the replay type.
+        Keys: Replay types.
+        Values: Matrix of dimension n_individual*nS*nA.'''
+    if deterministic:
+        env = '_D'
+    else:
+        env = '_S'
+    empty_Q = np.zeros((params['n_individuals'], params['nS'], params['nA']))
+    Q_pop = dict(zip(params['replay_refs'], [empty_Q.copy() for r in params['replay_refs']])) 
+    for i in range(params['n_individuals']):
+        Data_trials = recover_data('Data_indiv/Dl_indiv'+str(i)+env, df=False)
+        # print(Data_trials)
+        for rep in params['replay_refs']:
+            Q_pop[rep][i,:,:] = Data_trials[trial]['Q_repl'][rep] # matrix after the replay phase
+    if save:
+        save_data(Q_pop, 'Qpop{}'.format(trial)+env, df=False)
+    return Q_pop
 
 
 

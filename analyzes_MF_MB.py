@@ -12,6 +12,16 @@ import pandas as pd
 import sys
 import pickle
 
+import scipy.stats as stats
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+from bioinfokit.analys import stat
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+from statsmodels.stats.multitest import multipletests
+from scipy.stats import spearmanr, pearsonr, wasserstein_distance, ks_2samp
+from similaritymeasures import frechet_dist
+
+
 # import functions and parameters
 import parameters_MF_MB as PRMS
 params = PRMS.params
@@ -209,12 +219,6 @@ def identify_representative(Data_pop, LC_pop, params=params, show=True):
 
 # ********** STATISTICAL TESTS *************** #
 
-import scipy.stats as stats
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
-from bioinfokit.analys import stat
-from statsmodels.stats.multicomp import pairwise_tukeyhsd
-
 def test_groups(Data, var_name, params=params, display=True):
     '''The Kruskal-Wallis H-test tests the null hypothesis that the population median of all of the groups are equal. 
     It is a non-parametric version of ANOVA.
@@ -368,18 +372,17 @@ def optimize_alpha(params=params):
 
 
 # ********** QVALUES DISTRIBUTIONS *************** #
-from sklearn.neighbors import KernelDensity
-from scipy.stats.kde import gaussian_kde
-from scipy import interpolate
-from scipy import ndimage
 
 def convert_Q_to_unidimensional(Q):
     return Q.reshape(Q.shape[0]*Q.shape[1],)
 
-
-def compute_individual_histograms(Models, Qopt=None, params=params, nbins=10):
+def compute_individual_histograms(Q_pop, Qopt=None, params=params, nbins=10):
     '''Generates the histograms of Q-value distributions, for each individual.
-    If Qopt is provided, the histogram of Q values of the optimal policy is also computed.
+    :param Q_pop: Dictionary containing the population Q matrices, splitted according to the replay type.
+        Keys: Replay types.
+        Values: Matrix of dimension n_individual*nS*nA.
+    :param Qopt: (optional) If provided, the histogram of Q values of the optimal policy is also computed.
+    :param Models: Dictionary containing the matrices describing all individuals's learnt model of the world on the trial of interest, for each replay type.
     :return H_indiv: Dictionary storing the histograms of all individuals, for each replay type.
                     Keys : replay types, -1 for the optimal policy.
                     Values: Matrices of dimension n_individuals*nbins.'''
@@ -387,10 +390,12 @@ def compute_individual_histograms(Models, Qopt=None, params=params, nbins=10):
     H_indiv = dict(zip(params['replay_refs'], [H_empty.copy() for rep in params['replay_refs']]))
     for rep in params['replay_refs']:
         for i in range(params['n_individuals']):
-            Q = Models['Q'][rep][i,:,:]
-            data = convert_Q_to_unidimensional(Q)
+            Q = Q_pop[rep][i,:,:]
+            data = convert_Q_to_unidimensional(Q)/np.max(Q) # normalize
             hist, bin_edges = np.histogram(data, bins=nbins)
             H_indiv[rep][i,:] = hist
+            # if np.max(Q) >1:
+            #     print(rep, bin_edges)
     if Qopt is not None:
         data = Qopt.reshape(Qopt.shape[0]*Qopt.shape[1],)
         hist, bin_edges = np.histogram(data, bins=nbins)
@@ -412,7 +417,7 @@ def compute_population_histogram(H_indiv, params=params):
     H_pop['bins'] = H_indiv['bins']
     return H_pop
 
-def compute_individual_distances(Models, Qopt=None, params=params):
+def compute_individual_distances(Q_pop, Qopt=None, params=params):
     '''Similarity between Q-value distributions of different replay types, for each individual.
     Metric: Wasserstein_distance (Earth mover's Distance).
             Represents the minimum amount of 'work' required to transform one distribution into the other, 
@@ -435,41 +440,125 @@ def compute_individual_distances(Models, Qopt=None, params=params):
     KS = np.zeros((n, n, 2, params['n_individuals']))
     for i in range(params['n_individuals']):
         for j, rep1 in enumerate(params['replay_refs']):
-            Q1 = Models['Q'][rep1][i,:,:]
+            Q1 = Q_pop[rep1][i,:,:]
             data1 = convert_Q_to_unidimensional(Q1)
             for k, rep2 in enumerate(params['replay_refs']):
-                Q2 = Models['Q'][rep2][i,:,:]
+                Q2 = Q_pop[rep2][i,:,:]
                 data2 = convert_Q_to_unidimensional(Q2)
-                EMD[j,k,i] = stats.wasserstein_distance(data1, data2)
-                KS[j,k,0,i], KS[j,k,1,i] = stats.ks_2samp(data1, data2)
+                EMD[j,k,i] = wasserstein_distance(data1, data2)
+                KS[j,k,0,i], KS[j,k,1,i] = ks_2samp(data1, data2)
             if Qopt is not None:
                 data_opt = convert_Q_to_unidimensional(Qopt)
-                EMD[j,n-1,i] = stats.wasserstein_distance(data1, data_opt)
+                EMD[j,n-1,i] = wasserstein_distance(data1, data_opt)
                 EMD[n-1,j,i] = EMD[j,n-1,i]
-                EMD[n-1,n-1,i] = stats.wasserstein_distance(data_opt, data_opt)
-                KS[j,n-1,0,i], KS[j,n-1,1,i] = stats.ks_2samp(data1, data_opt)
+                EMD[n-1,n-1,i] = wasserstein_distance(data_opt, data_opt)
+                KS[j,n-1,0,i], KS[j,n-1,1,i] = ks_2samp(data1, data_opt)
                 KS[n-1,j,0,i] = KS[j,n-1,0,i]
                 KS[n-1,j,1,i] = KS[j,n-1,1,i]
-                KS[n-1,n-1,0,i], KS[n-1,n-1,1,i] = stats.ks_2samp(data_opt, data_opt)
+                KS[n-1,n-1,0,i], KS[n-1,n-1,1,i] = ks_2samp(data_opt, data_opt)
     return EMD, KS
 
 
-def compute_population_distances(EMD, KS, params=params):
+def compute_population_distances(EMD, KS, params=params, correct=True):
     '''Computes the median EMD in the population for all replay types.
     Computes the Wilcoxon signed-rank test, which tests the null hypothesis 
     that the sample come from the null distribution. 
     It is a non-parametric version of the paired T-test.'''
     EMD_pop = np.median(EMD, axis=2) # median EMD distance across individuals
     Stat_emd = np.zeros((EMD_pop.shape[0],EMD_pop.shape[1],2))
-    for j in range(EMD_pop.shape[0]):
-        for k in range(EMD_pop.shape[1]):
+    n_groups = EMD_pop.shape[0]
+    for j in range(n_groups):
+        for k in range(n_groups):
             if k != j: # different groups
                 Wvalue, pvalue = stats.wilcoxon(EMD[j,k,:])
+                Wvalue, pvalue = stats.wilcoxon(EMD[j,-1,:], EMD[k,-1,:])
                 Stat_emd[j,k,0] = Wvalue
                 Stat_emd[j,k,1] = pvalue
             else: # same groups
                 Stat_emd[j,k,0] = 0
                 Stat_emd[j,k,1] = 1
-    print(Stat_emd[:,:,1])
+    if correct:
+        pvals = [Stat_emd[j,k,1] for j in range(n_groups) for k in range(n_groups) if k>j]
+        indices = [(j,k) for j in range(n_groups) for k in range(n_groups) if k>j]
+        reject, pvals_corr, _, _ = multipletests(pvals, method='bonferroni')
+        print(pvals)
+        print(pvals_corr)
+        for p, p_corr, ids in zip(pvals, pvals_corr, indices):
+            j, k = ids
+            Stat_emd[j,k,1] = p_corr
     return EMD_pop, Stat_emd
+
+
+
+
+# ********** TRAJECTORIES *************** #
+
+def set_env(deterministic):
+    if deterministic:
+        env = '_D'
+    else:
+        env = '_S'
+    return env
+
+def Frechet_distance_trajectories(rep, deterministic=True, params=params):
+    '''Compute the discrete Frechet distance between two curves of dimensions (T1,N) and (T2,N), 
+    with T is the number of data points, and N the number of dimensions (here 2).
+    '''
+    env = set_env(deterministic)
+    x_states = [params['state_coords'][s][0] for s in range(params['nS'])] # list of x coordinates of states
+    y_states = [params['state_coords'][s][1] for s in range(params['nS'])] # list of y coordinates of states
+    DistMat = np.zeros((params['n_individuals'],params['n_trials'],params['n_trials']))
+    for i in range(params['n_individuals']):
+        Data_trials = recover_data('Data_indiv/Dl_indiv'+str(i)+env, df=False)
+        for t1 in range(params['n_trials']):
+            h1 = Data_trials[t1]['h_explo'][rep]
+            x1 = [params['state_coords'][s0][0] for (s0, a, s1, r) in h1]
+            y1 = [params['state_coords'][s0][1] for (s0, a, s1, r) in h1]
+            traj1 = np.transpose(np.array([x1,y1]))
+            for t2 in range(t1, params['n_trials']):
+                h2 = Data_trials[t2]['h_explo'][rep]
+                x2 = [params['state_coords'][s0][0] for (s0, a, s1, r) in h2]
+                y2 = [params['state_coords'][s0][1] for (s0, a, s1, r) in h2]
+                traj2 = np.transpose(np.array([x2,y2]))
+                d = frechet_dist(traj1, traj2)
+                DistMat[i,t1,t2] = d
+                DistMat[i,t2,t1] = d
+                print('Individual', i, 'T', t1, t2)
+    return DistMat
+
+def transitions_diversity(h):
+    return len(set(h))
+
+def all_transitions_diversity(trial=0, deterministic=True, params=params):
+    env = set_env(deterministic)
+    Tr_div = dict(zip(params['replay_refs'], [np.zeros(params['n_individuals']) for rep in params['replay_refs']]))
+    for rep in params['replay_refs']:
+        for i in range(params['n_individuals']):
+            Data_trials = recover_data('Data_indiv/Dl_indiv'+str(i)+env, df=False)
+            h = Data_trials[trial]['h_explo'][rep]
+            Tr_div[rep][i] = transitions_diversity(h)
+    return Tr_div
+
+def weighted_trajectory(h, Qopt, params=params):
+    x1 = [params['state_coords'][s0][0] for (s0, a, s1, r) in h1]
+    y1 = [params['state_coords'][s0][1] for (s0, a, s1, r) in h1]
+
+
+# ******************* FACTORS EXPLAINING PERFORMANCE ************************ #
+
+def correlation_Qmatrices(Q, Qopt):
+    Q = convert_Q_to_unidimensional(Q)
+    Qopt = convert_Q_to_unidimensional(Qopt)
+    # corr, pval = spearmanr(Q, Qopt)
+    corr, pval = pearsonr(Q, Qopt)
+    return corr, pval 
+
+def all_correlations(Qpop, Qopt, params=params):
+    corrQ = dict(zip(params['replay_refs'], [np.zeros(params['n_individuals']) for rep in params['replay_refs']]))
+    for rep in params['replay_refs']:
+        for i in range(params['n_individuals']):
+            corr, pval = correlation_Qmatrices(Qpop[rep][i,:,:], Qopt)
+            corrQ[rep][i] = corr
+    return corrQ
+
 

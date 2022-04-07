@@ -13,6 +13,7 @@ import figures_utils as fig_utl
 import parameters_MF_MB as PRMS
 from functions_MF_MB import V_from_Q
 from analyzes_MF_MB import test_pairwise, test_groups
+from simulations_MF_MB import recover_data
 params = PRMS.params
 
 check_reload = False # signal successful importation at the end of the file
@@ -24,7 +25,11 @@ colors_replays = {0: 'royalblue',
                   3: 'orchid',
                   4: 'k',
                   -1:'white'} 
-
+cmaps_replays = {0: 'Blues',
+                  1: 'YlOrBr',
+                  2: 'YlGn',
+                  3: 'RdPu',
+                  4: 'Greys'} 
 
 # ********** AUXILIARY FUNCTIONS *************** #
 
@@ -232,23 +237,6 @@ def plot_comparison(Data0, Data1, variable='perf', plot_stats=True, thres=0.05, 
 
 
 
-# ********** POPULATION DATA - CORRELATIONS *************** #
-
-def plot_correlations(Perf0, Perf1, params=params, label0='', label1=''):
-    ax = plt.subplot(111)
-    for rep in params['replay_refs']:
-        d0 = Perf0['Mean'].loc[Perf0['Replay type']==rep]
-        d1 = Perf1['Mean'].loc[Perf1['Replay type']==rep]
-        corr, pval = spearmanr(a=d0, b=d1)
-        ax.scatter(d0, d1, s=5, color=colors_replays[rep], label=params['replay_types'][rep]+r', $\rho = {}$, p-val = {}'.format(np.round(corr,decimals=1), np.round(pval, decimals=3)))
-    ax.set_xlabel(label0)
-    ax.set_ylabel(label1)
-    fig_utl.hide_spines(ax, sides=['right', 'top'])
-    ax.set_title('Correlations in performances\nin different simulation epochs')
-    ax.legend(bbox_to_anchor=(1,1))
-    plt.show()
-
-
 # ******************* OPTIMIZATION OF ALPHA PARAMETER ************************ #
 
 def compare_alpha_values_replays(Data, ax=None, deterministic=True, fontsize=13, params=params):
@@ -351,14 +339,14 @@ def compare_alpha_det_stoch_all(Data, ax=None, params=params, fontsize=13, dx = 
 
 # ******************* DISTRIBUTION OF Q-VALUES ************************ #
 
-def plot_Q_distribution(H, ax, color='white', edgecolor='white', params=params, log=False):
+def plot_Q_distribution(H, ax, color='white', edgecolor='white', params=params, log=False, alpha=0.7):
     if type(H) is dict:
         h, hlow, hup = H['Q2'], H['Q1'], H['Q3']
         create_moustaches(ax, h, hlow, hup)
     else:
         h = H
         edgecolor = 'k'
-    ax.bar(np.arange(len(h)), h, color=color, edgecolor=edgecolor)
+    ax.bar(np.arange(len(h)), h, color=color, edgecolor=edgecolor, alpha=alpha)
     if log:
         ax.set_yscale('log', base=2)
     positions = np.linspace(0,1,len(h)) 
@@ -464,3 +452,87 @@ def plot_EMD_distance(EMD, params=params, fontsize=10):
         ax.text(0.5, -0.25, params['replay_types'][refs[j]], transform=ax.transAxes, 
                 fontsize=fontsize, ha='right', va='top', bbox=props, rotation=45)
     plt.show()
+
+
+
+# ******************* FRECHET DISTANCES ************************ #
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+def set_env(deterministic):
+    if deterministic:
+        env = '_D'
+        ttl = 'Deterministic environment'
+    else:
+        env = '_S'
+        ttl = 'Stochastic environment'
+    return env, ttl
+
+def compare_distances_trajectories(deterministic=True, params=params, scale=3):
+    env, ttl = set_env(deterministic)
+    n_plots = len(params['replay_refs'])
+    fig, axes = plt.subplots(1, n_plots, figsize=(n_plots*scale*1.3, scale))
+    fig.suptitle('Similarity between trajectories')
+    for i, (ax, rep) in enumerate(zip(axes, params['replay_refs'])):
+        DistMat_pop = recover_data('Frechet{}'.format(rep)+env, df=False)
+        M = np.mean(DistMat_pop, axis=0)
+
+        cmap = cmaps_replays[rep]
+        im = ax.imshow(M, cmap=cmap)
+        ax.set_xlabel('Trials')
+        if i == 0:
+            ax.set_ylabel('Trials')
+
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05)
+        cbar = fig.colorbar(im, cax=cax)
+        if i == n_plots -1:
+            cbar.set_label('Mean Frechet distance\nbetween trajectories (a.u.)')
+    plt.show()
+
+def compare_distances_initial_trajectory(trial=0, deterministic=True, params=params):
+    env, ttl = set_env(deterministic)
+    fig, ax = plt.subplots()
+    for rep in params['replay_refs']:
+        DistMat_pop = recover_data('Frechet{}'.format(rep)+env, df=False)
+        M = DistMat_pop[:,trial,:]
+        q1, q2, q3 = np.percentile(M, [25, 50, 75], axis=0)
+        t = np.arange(params['n_trials'])
+        curve_shaded(ax, t, q2, q1, q3, label=params['replay_types'][rep], color=colors_replays[rep])
+    ax.legend()
+    plt.show()
+
+
+# ******************* FACTORS EXPLAINING PERFORMANCE ************************ #
+
+def create_groups_perfs(PRF, variable_name, params=params):
+    data = dict(zip(params['replay_refs'], [None for rep in params['replay_refs']]))
+    for rep in params['replay_refs']:
+        data[rep] = PRF[variable_name].loc[PRF['Replay type']==rep].to_numpy()
+    return data
+
+def plot_correlations(data0, data1, params=params, label0='', label1='', title=''):
+    ax = plt.subplot(111)
+    for rep in params['replay_refs']:
+        d0 = data0[rep]
+        d1 = data1[rep]
+        corr, pval = spearmanr(d0, d1)
+        ax.scatter(d0, d1, s=5, color=colors_replays[rep], label=params['replay_types'][rep]+r', $\rho = {}$, p-val = {}'.format(np.round(corr,decimals=1), np.round(pval, decimals=3)))
+        if pval < 0.05:
+            x_m = np.mean(d0)
+            y_m = np.mean(d1)
+            y0 = y_m - x_m*corr
+            xmin, xmax = np.min(d0), np.max(d0)
+            ymin = y0 + corr*xmin
+            ymax = y0 + corr*xmax
+            ax.plot([xmin,xmax],[ymin,ymax], linestyle='dashed', color=colors_replays[rep])
+    ymax = max([np.max(data1[rep]) for rep in params['replay_refs']])
+    ymin = max([np.min(data1[rep]) for rep in params['replay_refs']])
+    ax.set_ylim(ymin,ymax)
+    ax.set_xlabel(label0)
+    ax.set_ylabel(label1)
+    fig_utl.hide_spines(ax, sides=['right', 'top'])
+    ax.set_title(title)
+    ax.legend(bbox_to_anchor=(1,1))
+    plt.show()
+
