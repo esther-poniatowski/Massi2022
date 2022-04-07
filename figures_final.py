@@ -8,12 +8,13 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
 import seaborn as sns
 
 import figures_utils as fig_utl
 import parameters_MF_MB as PRMS
-from analyzes_MF_MB import test_pairwise, test_groups
-from figures_pop import curve_shaded, create_data_groups, plot_violins_replays, compare_alpha_values_replays, compare_alpha_det_stoch_all
+from analyzes_MF_MB import test_pairwise, test_groups, split_before_after_change, identify_representative
+from figures_pop import curve_shaded, create_data_groups, plot_violins_replays, compare_alpha_values_replays, compare_alpha_det_stoch_all, plot_Q_distribution
 from figures_indiv import show_trajectory, extract_data
 from figure_qvalue_map import create_voronoid, fill_voronoid, create_map
 import scipy.spatial as scispa
@@ -26,14 +27,29 @@ colors_replays = {0: 'royalblue',
                   1: 'orange',
                   2: 'forestgreen',
                   3: 'orchid',
-                  4: 'k'} 
+                  4: 'k',
+                  -1:'white'} 
 
 
 
 
 # ********** LEARNING CURVES and VIOLIN PLOTS *************** #
 
+def plot_violin_and_stats_on_ax(ax, PRF,  params=params, thres=0.05,
+                                ylab='', ax_title='', fontsize=10, fontsize_title=10,
+                                fontsize_leg=11, leg=False, log=True):
+    Q1, Q2, Q3, data = create_data_groups(PRF, var_name='Mean', params=params)
+    Hvalue, pvalue = test_groups(PRF, var_name='Mean', params=params, display=False)
+    if pvalue < thres:
+        stats = test_pairwise(PRF, var_name='Mean', thres=thres, params=params, display=False)
+    else:
+        stats = []
+    plot_violins_replays(ax, data, Q1, Q2, Q3, stats=stats, params=params, 
+                        ylab=ylab, ax_title=ax_title, fontsize=fontsize, fontsize_title=fontsize,
+                        fontsize_leg=fontsize_leg, leg=False, log=log)
+
 def figure_learning_curves_violin_plots(det=True, params=params, thres=0.05, log_scale=True,
+                                        log=False, sharey=False,
                                         fontsize=10, fontsize_leg=10, fontsize_fig=11, scale=2):
     if det:
         env = '_D'
@@ -91,21 +107,26 @@ def figure_learning_curves_violin_plots(det=True, params=params, thres=0.05, log
     fig_utl.hide_ticks(ax, 'y')
     fig_utl.hide_spines(ax, ['top', 'bottom', 'left', 'right'])
     # Violin plots
+    Axes_violin = []
     for col, (PRF, ttl) in enumerate(zip(PRFS, titles)):
         ax = fig.add_subplot(gs_bottom[0,col])
-        Q1, Q2, Q3, data = create_data_groups(PRF, var_name='Mean', params=params)
-        Hvalue, pvalue = test_groups(PRF, var_name='Mean', params=params, display=False)
-        if pvalue < thres:
-            stats = test_pairwise(PRF, var_name='Mean', thres=thres, params=params, display=False)
-        else:
-            stats = []
+        Axes_violin.append(ax)
         if col == 0:
-            ylab = 'Number of actions\ntaken to reach reward'
+            ylab = 'Number of actions\n taken to get to the reward'
         else:
             ylab = ''
-        plot_violins_replays(ax, data, Q1, Q2, Q3, stats=stats, params=params, 
-                            ylab=ylab, ax_title=ttl, fontsize=fontsize, fontsize_title=fontsize,
-                            fontsize_leg=fontsize_leg, leg=False)
+        plot_violin_and_stats_on_ax(ax, PRF,  params=params, thres=thres,
+                                ylab=ylab, ax_title=ttl, fontsize=fontsize, fontsize_title=fontsize,
+                                fontsize_leg=fontsize_leg, leg=False, log=log)
+    if sharey:
+        ymin = min([ax.get_ylim()[0] for ax in Axes_violin]) 
+        ymax = max([ax.get_ylim()[1] for ax in Axes_violin]) 
+        for ax, PRF, ttl in zip(Axes_violin, PRFS, titles):
+            ax.clear()
+            ax.set_ylim(ymin, ymax)
+            plot_violin_and_stats_on_ax(ax, PRF,  params=params, thres=thres,
+                                ylab=ylab, ax_title=ttl, fontsize=fontsize, fontsize_title=fontsize,
+                                fontsize_leg=fontsize_leg, leg=False, log=log)
     plt.show()
 
 
@@ -136,29 +157,39 @@ def figure_alpha_selection(params=params,
 
 # ********** Q-VALUE PROPAGATION *************** #
 
-def figure_Qvalues(det=True, trials=[0,1,24,25], params=params, 
-                    figscale=2, fontsize=10, fontsize_fig=12,
-                    norm_across_rep=False, norm_single_replay=True,
-                    cmap_Q=plt.cm.Greys, cmap_traj='rainbow',
-                    sz=50, sz_r=100, edgc='k', edgw=1, c='white', scale=3):
-    # Recover and compute data
-    if det:
-        Dl_indiv = recover_data('Dl_indiv_D', df=False)
-        fig_title = 'Deterministic environment'
-    else:
-        Dl_indiv = recover_data('Dl_indiv_S', df=False)
-        fig_title = 'Stochastic environment'
+def plot_Q_map(ax, Q, params=params, 
+            i_s0=params['starting_points']['learning'], i_r=params['reward_states'][0],
+            cmap_Q=plt.cm.Greys, sz=50, sz_r=100, edgc='k', edgw=1, c='white', scale=0.08):
     centre_states = np.array(params['state_coords'])
     vor = create_voronoid(params)
+    colormap = fill_voronoid(ax, Q, vor, cmap=cmap_Q)
+    create_map(ax, map_path="Figures/map1.pgm", scale=scale, offset=np.array([-0.2, 0.2]))
+    scispa.voronoi_plot_2d(vor, ax=ax, show_points=False, show_vertices=False, line_colors='k')
+    ax.scatter(centre_states[i_s0, 0], centre_states[i_s0, 1], label='Initial state', color=c, edgecolor=edgc, linewidth=edgw, s=sz, zorder=1000)
+    ax.scatter(centre_states[i_r, 0], centre_states[i_r, 1], label='Reward state', marker="*", color=c, edgecolor=edgc, linewidth=edgw, s=sz_r, zorder=1000)
+    ax.set_xlim(-1.5, 1.2)
+    ax.set_ylim(-1, 1)
+    ax.tick_params(labelcolor=(1.0,1.0,1.0, 0.0), top='off', bottom='off', left='off', right='off')
+    return colormap 
+
+def figure_Qvalues(det=True, trials=[0,1,24,25], params=params, 
+                    figscale=2, fontsize=10, fontsize_fig=12):
+    # Recover and compute data
+    if det:
+        env = '_D'
+        fig_title = 'Deterministic environment'
+    else:
+        env = '_S'
+        fig_title = 'Stochastic environment'
+    Dl_indiv = recover_data('Dl_indiv'+env, df=False)
     x_states, y_states, T = extract_data(deterministic=det, params=params)
-    i_s0 = params['starting_points']['learning']
 
     # Set the figure structure
     n_rows = len(trials)
     n_cols = len(params['replay_refs'])
-    fig, big_axes = plt.subplots(figsize=(n_cols*1.1*figscale, 1.3*n_rows*figscale), nrows=n_rows, ncols=1, sharey=True) 
+    fig, axes_trials = plt.subplots(figsize=(n_cols*1.1*figscale, 1.3*n_rows*figscale), nrows=n_rows, ncols=1, sharey=True) 
     fig.suptitle('Q-values propagation (maximum Q-values)\n'+fig_title, fontsize=fontsize_fig, y=1)
-    for row, ax_trial in enumerate(big_axes, start=1):
+    for row, ax_trial in enumerate(axes_trials, start=1):
         ax_trial.set_title('Trial {}'.format(trials[row-1]), fontsize=fontsize_fig)
         fig_utl.hide_spines(ax_trial, ['top', 'bottom', 'left', 'right'])
         fig_utl.hide_ticks(ax_trial, 'x')
@@ -174,11 +205,6 @@ def figure_Qvalues(det=True, trials=[0,1,24,25], params=params,
             i_r = params['reward_states'][0]
         else:
             i_r = params['reward_states'][1]
-        norm = 1 # no normalization by default
-        if norm_across_rep: # maximum Q across all replay types
-            norm = max([np.max(Q_rpls[rep]) for rep in params['replay_refs']])
-            if norm == 0:
-                norm = 1
 
         for col in range(1, n_cols+1):
             i_ax = (row-1)*n_cols + col # index of the plot
@@ -186,30 +212,121 @@ def figure_Qvalues(det=True, trials=[0,1,24,25], params=params,
             ax = fig.add_subplot(n_rows,n_cols,i_ax)
             if row == 1:
                 ax.set_title(params['replay_types'][rep], y=1.15)
-
+            # normalize Q matrix
             Q = Q_rpls[rep]
-            if norm_single_replay:
-                norm = np.max(Q)
-                if norm == 0 :
-                    norm = 1
+            norm = np.max(Q)
+            if norm == 0 :
+                norm = 1
             Q /= norm
-            colormap = fill_voronoid(ax, Q, vor, cmap=cmap_Q)
-            create_map(ax, map_path="Figures/map1.pgm", scale=0.08, offset=np.array([-0.2, 0.2]))
-            scispa.voronoi_plot_2d(vor, ax=ax, show_points=False, show_vertices=False, line_colors='k')
-            show_trajectory(ax, H_rpls[rep], x_states, y_states, cmap_name=cmap_traj)
+            colormap = plot_Q_map(ax, Q, params=params, i_r=i_r)
+            show_trajectory(ax, H_rpls[rep], x_states, y_states)
             show_trajectory(ax, H_trajs[rep], x_states, y_states, uniform_col=True)
-            ax.scatter(centre_states[i_s0, 0], centre_states[i_s0, 1], label='Initial state', color=c, edgecolor=edgc, linewidth=edgw, s=sz, zorder=1000)
-            ax.scatter(centre_states[i_r, 0], centre_states[i_r, 1], label='Reward state', marker="*", color=c, edgecolor=edgc, linewidth=edgw, s=sz_r, zorder=1000)
-            ax.set_xlim(-1.5, 1.2)
-            ax.set_ylim(-1, 1)
-            ax.tick_params(labelcolor=(1.0,1.0,1.0, 0.0), top='off', bottom='off', left='off', right='off')
-
-            if i_ax == 0: # add legend for remarkable states only on the first plot
-                ax.legend(bbox_to_anchor=[0, 0], loc='center', fontsize=13)
+            if i_ax == 1: # add legend for remarkable states only on the first plot
+                ax.legend(bbox_to_anchor=(0,0), loc='center', fontsize=fontsize)
+            if i_ax == 2:
+                custom_lines = [Line2D([0], [0], color='gray', linestyle='dashed', lw=1.5),
+                Line2D([0], [0], color='blue', lw=2.5)]
+                labels = ['Explorated trajectory', 'Replayed transitions']
+                ax.legend(custom_lines, labels, fontsize=fontsize, bbox_to_anchor=(0.2,0), loc='center')
     
     # Set a common colorbar
-    # for row, ax_trial in enumerate(big_axes, start=1):
-    #     cbar = fig.colorbar(colormap, ax=big_axes, fraction=0.01)
-    #     cbar.set_label('Maximum Q-value\nin each state (a.u.)', fontsize=12)
+    cbar = fig.colorbar(colormap, ax=axes_trials[0], fraction=0.01)
+    cbar.set_label('Maximum Q-value\nin each state (normalized)', fontsize=fontsize)
     plt.show()
 
+
+# ********** HISTOGRAMS OF Q-VALUES *************** #
+
+from mpl_toolkits.axes_grid1 import Divider, Size
+
+def fix_axes_size_incm(fig, ax, axew, axeh):
+    axew = axew/2.54
+    axeh = axeh/2.54
+    # use the tight layout function to get a good padding size for axes labels
+    fig.tight_layout()
+    # obtain the current ratio values for padding and fix size
+    oldw, oldh = fig.get_size_inches()
+    l = ax.figure.subplotpars.left
+    r = ax.figure.subplotpars.right
+    t = ax.figure.subplotpars.top
+    b = ax.figure.subplotpars.bottom
+    # work out what the new  ratio values for padding are, and the new fig size
+    neww = axew+oldw*(1-r+l)
+    newh = axeh+oldh*(1-t+b)
+    newr = r*oldw/neww
+    newl = l*oldw/neww
+    newt = t*oldh/newh
+    newb = b*oldh/newh
+    # right(top) padding, fixed axes size, left(bottom) pading
+    hori = [Size.Scaled(newr), Size.Fixed(axew), Size.Scaled(newl)]
+    vert = [Size.Scaled(newt), Size.Fixed(axeh), Size.Scaled(newb)]
+    divider = Divider(fig, (0.0, 0.0, 1., 1.), hori, vert, aspect=False)
+    # ignore width and height of the rectangle
+    ax.set_axes_locator(divider.new_locator(nx=1, ny=1))
+    # resize the figure now, axes bigger may have become bigger than in
+    fig.set_size_inches(neww,newh)
+
+
+def figure_histograms(det=True, params=params, log=True,
+                    figscale=2, fontsize=10, fontsize_fig=12):
+    # Recover and compute data
+    if det:
+        env = '_D'
+        fig_title = 'Deterministic environment'
+    else:
+        env = '_S'
+        fig_title = 'Stochastic environment'
+    Models = recover_data('Model'+env, df=False)
+    Dl0 = recover_data('Dl0'+env)
+    LCl = recover_data('LCl'+env)
+    LCl0, LCl1, _, _ = split_before_after_change(LCl, params=params)
+    i_repr = identify_representative(Dl0, LCl0, params=params, show=False)
+    # print(i_repr)
+    Q_dict = dict(zip(params['replay_refs'], [None for rep in params['replay_refs']]))
+    for rep in params['replay_refs']:
+        Q = Models['Q'][rep][i_repr]
+        Q_dict[rep] = Q.copy()
+    Qopt = recover_data('Qopt'+env, df=False)
+    params['replay_refs'].append(-1)
+    Q_dict[-1] = Qopt
+    H = recover_data('Hpop'+env, df=False)
+
+    # Set the structure of the figure
+    fig = plt.figure(figsize=(5*figscale, 2.6*figscale), constrained_layout=True)
+    fig.suptitle('Q-value propagation on trial 24\n'+fig_title, y=1.15, fontsize=fontsize_fig)
+    gs = fig.add_gridspec(2, 5, height_ratios=[1,1.3]) 
+    
+    # Plot Q maps
+    for col in range(5):
+        rep = params['replay_refs'][col] # corresponding replay type
+        ax = fig.add_subplot(gs[0,col])
+        ax.set_title(params['replay_types'][rep], y=1)
+        Q = Q_dict[rep]
+        norm = np.max(Q)
+        if norm == 0 :
+            norm = 1
+        Q /= norm
+        colormap = plot_Q_map(ax, Q, params=params)
+        
+    # Plot histograms
+    Axes_hist = []
+    for col in range(5):
+        rep = params['replay_refs'][col] # corresponding replay type
+        ax = fig.add_subplot(gs[1,col])
+        Axes_hist.append(ax)
+        plot_Q_distribution(H[rep], ax, color=colors_replays[rep], params=params, log=True)
+    Axes_hist[0].set_ylabel('Distribution (log)', fontsize=fontsize)
+    fig_utl.hide_spines(Axes_hist[0])
+    for ax in Axes_hist[1:]:
+        fig_utl.hide_spines(ax, sides=['left','right','top'])
+        fig_utl.hide_ticks(ax, 'y')
+
+    ax_up = fig.add_subplot(2,1,1)
+    ax_up.set_title('Q-value maps of the most representative individual', y=1.6, fontsize=fontsize_fig)
+    ax_down = fig.add_subplot(2,1,2)
+    ax_down.set_title('Distributions of Q-values (median in the population)', y=1.85, fontsize=fontsize_fig)
+    for ax in [ax_up, ax_down]:
+        fig_utl.hide_spines(ax, ['top', 'bottom', 'left', 'right'])
+        fig_utl.hide_ticks(ax, 'x')
+        fig_utl.hide_ticks(ax, 'y')
+        ax.patch.set_alpha(0)

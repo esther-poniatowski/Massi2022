@@ -34,19 +34,14 @@ def legend_replay_types(ax, params=params, fontsize=10):
     legend = ax.legend(handles=handles, title="Replay types", loc=2, bbox_to_anchor=(1,1), fontsize=fontsize)
     legend.get_title().set_fontsize(fontsize)
 
-def significant_difference_bars(ax, x1, x2, h=None, text='*',
-                                dh=None, dh_scale=0.03,
-                                color='k', linewidth=2):
-    if h is None:
-        h = ymax
-    if dh is None:
-        ymin, ymax = ax.get_ylim()
-        dh = dh_scale*(ymax-ymin)
-    ax.plot([x1,x2],[h,h], color=color, linewidth=linewidth)
-    ax.plot([x1,x1],[h,h-dh], color=color, linewidth=linewidth)
-    ax.plot([x2,x2],[h,h-dh], color=color, linewidth=linewidth)
-    ax.text(min(x1,x2)+(max(x1,x2)-min(x1,x2))/2, h, text, 
-        fontsize=15,  ha='center', va='center', zorder=10)
+
+def create_moustaches(ax, y, ylow, yup, x=None):
+    if x is None:
+        x = np.arange(len(y))
+    error_low = np.array(y) - np.array(ylow)
+    error_up = np.array(yup) - np.array(y)
+    ax.bar(x=x, height=y, yerr=(error_low, error_up), alpha=0, align='center', ecolor='black', capsize=5)
+    ax.scatter(x, y, color='white', edgecolor='k', zorder=100)
 
 
 # ********** POPULATION DATA - LEARNING CURVES *************** #
@@ -64,7 +59,7 @@ def curve_shaded(ax, x, y, ylow, yup, label='',
     ax.plot(x, ylow, color=color, alpha=0.2, linestyle='dashed')
     ax.fill_between(x, ylow, yup, alpha=0.2, facecolor=color)
 
-def plot_learning_curves(LC_pop, mode='median', log_scale=True, deterministic=True, save=True, fig_name='', fontsize=13, fontsize_leg=12, colors_replays=colors_replays, shaded=True, params=params):
+def plot_learning_curves(LC_pop, mode='median', log_scale=True, deterministic=True, fig_name='', fontsize=13, fontsize_leg=12, colors_replays=colors_replays, shaded=True, params=params):
     '''Convergence curves.''' 
     fig, ax = plt.subplots(figsize=(10,6))
     for rep in params['replay_refs'] :
@@ -98,8 +93,6 @@ def plot_learning_curves(LC_pop, mode='median', log_scale=True, deterministic=Tr
     ax.set_title('Learning curves'+fig_title, fontsize=fontsize)
     legend = ax.legend(title='Replay types', fontsize=fontsize_leg)
     legend.get_title().set_fontsize(fontsize_leg)
-    if save:
-        plt.savefig('Figures/learning_conv_'+fig_name)
     plt.show()
 
 
@@ -141,6 +134,20 @@ def create_data_groups(Data, var_name='Mean', params=params):
     # STD = [np.std(Data[var_name].loc[Data['Replay type']==rep]) for rep in params['replay_refs']]
     return Q1, Q2, Q3, data_groups
 
+def significant_difference_bars(ax, x1, x2, h=None, text='*',
+                                dh=None, dh_scale=0.03,
+                                color='k', linewidth=2):
+    if h is None:
+        h = ymax
+    if dh is None:
+        ymin, ymax = ax.get_ylim()
+        dh = dh_scale*(ymax-ymin)
+    ax.plot([x1,x2],[h,h], color=color, linewidth=linewidth)
+    ax.plot([x1,x1],[h,h-dh], color=color, linewidth=linewidth)
+    ax.plot([x2,x2],[h,h-dh], color=color, linewidth=linewidth)
+    ax.text(min(x1,x2)+(max(x1,x2)-min(x1,x2))/2, h, text, 
+        fontsize=15,  ha='center', va='center', zorder=10)
+
 def create_violin_plot(ax, data, alpha=0.5, params=params):
     parts = ax.violinplot(data, positions=[k for k in range(len(data))],
                           showmeans=False, showmedians=False, showextrema=False)
@@ -149,20 +156,12 @@ def create_violin_plot(ax, data, alpha=0.5, params=params):
         pc.set_edgecolor('white')
         pc.set_alpha(alpha)
 
-def create_moustaches(ax, y, ylow, yup, x=None):
-    if x is None:
-        x = np.arange(len(y))
-    error_low = np.array(y) - np.array(ylow)
-    error_up = np.array(yup) - np.array(y)
-    ax.bar(x=x, height=y, yerr=(error_low, error_up), alpha=0, align='center', ecolor='black', capsize=5)
-    ax.scatter(x, y, color='white', edgecolor='k', zorder=100)
-
-def plot_violins_replays(ax, data, Q1, Q2, Q3, stats=[], params=params, 
+def plot_violins_replays(ax, data, Q1, Q2, Q3, stats=[], params=params, log=False,
                         ylab='', ax_title='', fontsize=13, fontsize_title=14,
-                        fontsize_leg=11, leg=True, dh_scale=0.03, alpha=0.5):
+                        fontsize_leg=11, leg=True, alpha=0.5, dh_scale = 0.03):
+    # Violin plots
     create_violin_plot(ax, data, params=params)
     create_moustaches(ax, Q2,Q1,Q3)
-    # ax.xaxis.set_ticklabels([])
     fig_utl.hide_spines(ax, sides=['right', 'top', 'bottom'])
     fig_utl.hide_ticks(ax, 'x')
     ax.set_title(ax_title, fontsize=fontsize_title)
@@ -170,20 +169,29 @@ def plot_violins_replays(ax, data, Q1, Q2, Q3, stats=[], params=params,
     ax.set_ylabel(ylab, fontsize=fontsize)
     if leg:
         legend_replay_types(ax, params=params, fontsize=fontsize_leg)
+    # Statistical differences
+    texts = ['**' if stat[2]<0.001 else '*' for stat in stats]
     ymin, ymax = ax.get_ylim()
     dh = dh_scale*ymax
-    heights = [ymax+i*dh*2 for i in range(len(stats))]
-    texts = ['**' if stat[2]<0.001 else '*' for stat in stats]
-    for h, stat, text in zip(heights, stats, texts):
+    heights = [ymax+i*dh*2 for i in range(len(stats))] # uniform spacing of statistical bars
+    dh_list = [dh for i in range(len(stats))] # uniform cap size
+    if log:
+        ax.set_yscale('log', base=2)
+        loghmin = np.log2(ymax)
+        loghmax = loghmin + 0.25*(np.log(ymax)-np.log(ymin+1))
+        heights = [2**y for y in np.linspace(loghmin, loghmax, len(stats))]
+        h0 = 2**(loghmin - (loghmax-loghmin)/len(stats))
+        dh_list = [(np.sqrt(heights[0]/h0)-1)*h0]+[(np.sqrt(heights[i+1]/heights[i])-1)*heights[i] for i in range(len(heights)-1)]
+    for h, dh, stat, text in zip(heights, dh_list, stats, texts):
         x1 = params['replay_refs'].index(stat[0])
         x2 = params['replay_refs'].index(stat[1])
-        if stat[0]==0:
+        if stat[0]==0: # comparison between no replay and replay
             color='gray'
-        else:
+        else: # comparison between two replay methods
             color = 'k'
-        significant_difference_bars(ax, x1, x2, h=h, text=text, color=color, linewidth=2, dh=dh*0.9)
+        significant_difference_bars(ax, x1, x2, h=h, dh=dh, text=text, color=color, linewidth=2)
 
-def plot_comparison(Data0, Data1, variable='perf', plot_stats=True, thres=0.05, params=params, deterministic=True, save=True):
+def plot_comparison(Data0, Data1, variable='perf', plot_stats=True, thres=0.05, params=params, deterministic=True, log=False):
     if variable == 'conv':
         var_name = 'Convergence trial'
         ylab = 'Trial number'
@@ -195,7 +203,7 @@ def plot_comparison(Data0, Data1, variable='perf', plot_stats=True, thres=0.05, 
         ylab = 'Number of actions\ntaken to reach reward'
         ax_title0 = 'First 5 trials'
         ax_title1 = 'Last 5 trials'
-        sup_title = 'Time to convergence'
+        sup_title = 'Performance'
     Q1_0, Q2_0, Q3_0, data0 = create_data_groups(Data0, var_name=var_name, params=params)
     Q1_1, Q2_1, Q3_1, data1 = create_data_groups(Data1, var_name=var_name, params=params)
     if plot_stats:
@@ -211,9 +219,9 @@ def plot_comparison(Data0, Data1, variable='perf', plot_stats=True, thres=0.05, 
             stats1 = []
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10,5))
     plot_violins_replays(axes[0], data0, Q1_0, Q2_0, Q3_0, stats=stats0, params=params, 
-                        ylab=ylab, ax_title=ax_title0, leg=False)
+                        ylab=ylab, ax_title=ax_title0, leg=False, log=log)
     plot_violins_replays(axes[1], data1, Q1_1, Q2_1, Q3_1, stats=stats1, params=params, 
-                        ylab='', ax_title=ax_title1, leg=True)
+                        ylab='', ax_title=ax_title1, leg=True, log=log)
     if deterministic:
         ttl = ' - Deterministic environment'
     else:
@@ -342,20 +350,31 @@ def compare_alpha_det_stoch_all(Data, ax=None, params=params, fontsize=13, dx = 
 
 # ******************* DISTRIBUTION OF Q-VALUES ************************ #
 
-
-def plot_Q_distributions(H, params=params, log=False):
-    n_plots = len(params['replay_refs'])
-    fig, axes = plt.subplots(nrows=1, ncols=n_plots, figsize=(5*n_plots,5), sharey=True)
-    for ax, rep in zip(axes, params['replay_refs']):
-        h, hlow, hup = H[rep]['Q2'], H[rep]['Q1'], H[rep]['Q3']
-        ax.bar(np.arange(len(h)), h, color=colors_replays[rep])
+def plot_Q_distribution(H, ax, color='white', edgecolor='white', params=params, log=False):
+    if type(H) is dict:
+        h, hlow, hup = H['Q2'], H['Q1'], H['Q3']
         create_moustaches(ax, h, hlow, hup)
-        if log:
-            ax.set_yscale('log', base=2)
-        positions = np.linspace(0,1,len(h)) 
-        ax.xaxis.set_ticks(np.arange(len(h)+1)-0.5)
-        ax.xaxis.set_ticklabels(np.round(np.linspace(0,1,len(h)+1), decimals=2))
-        ax.set_xlabel('Q-values')
+    else:
+        h = H
+        edgecolor = 'k'
+    ax.bar(np.arange(len(h)), h, color=color, edgecolor=edgecolor)
+    if log:
+        ax.set_yscale('log', base=2)
+    positions = np.linspace(0,1,len(h)) 
+    ax.xaxis.set_ticks(np.arange(len(h)+1)-0.5)
+    ax.xaxis.set_ticklabels(np.round(np.linspace(0,1,len(h)+1), decimals=2))
+    ax.set_xlabel('Q-values')
+
+def plot_Q_distributions_replays(H, ax=None, params=params, log=False):
+    n_plots = len(params['replay_refs'])
+    if ax is None:
+        fig, axes = plt.subplots(nrows=1, ncols=n_plots, figsize=(5*n_plots,5), sharey=True)
+        fig.suptitle('Q-value coefficients')
+        show = True
+    else:
+        show = False
+    for ax, rep in zip(axes, params['replay_refs']):
+        plot_Q_distribution(H[rep], ax, color=colors_replays[rep], params=params, log=log)
         if rep==0:
             ax.set_ylabel('Distribution')
             fig_utl.hide_spines(ax)
@@ -363,9 +382,8 @@ def plot_Q_distributions(H, params=params, log=False):
             fig_utl.hide_spines(ax, sides=['left','right','top'])
             fig_utl.hide_ticks(ax, 'y')
         ax.set_title(params['replay_types'][rep])
-        
-    fig.suptitle('Q-value coefficients')
-    plt.show()
+    if show:
+        plt.show()
 
 def compare_distributions(EMD, Stats=None, params=params):
     # mask out the lower triangle
