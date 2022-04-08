@@ -1,7 +1,7 @@
 <div id="top"></div>
 
 <!-- PROJECT SHIELDS -->
-[![Contributors][contributors-shield]][contributors-url]
+[![Contributors][shield]]
 
 <h3 align="center">
   Massi 2022
@@ -106,7 +106,4 @@ More details about those modules and functions are available in the code documen
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/github_username/repo_name.svg?style=for-the-badge
-[contributors-url]: https://github.com/github_username/repo_name/graphs/contributors
-[product-screenshot]: images/screenshot.png
+[shield]: https://img.shields.io/badge/Python-3-blue
