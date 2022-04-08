@@ -97,6 +97,7 @@ The project is made up of the following files and directories :
   - It aready contains most of the data files required to plot the figures from the Jupyter notebooks. Files' formats are either `.csv` (for dataframes) or `.pickle` (for dictionaries, arrays, lists).
   - The sub-folder `Data_indiv/` specifically contains detailed data for 100 individual artificial agents.
 - [ ] The folder `Figures/` is the location where generated figures can be saved. It already contains the file `map1.pgm` necessary to plot one type of figure, representing the environment.
+- [ ] Three `.txt` files contain the transition matrices which define the properties of the environment. 
 
 ### Modules
 
