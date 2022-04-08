@@ -18,7 +18,7 @@
 </details>
 
 
-## About The Project
+## About the Project
 
 > This repository is related to the article :  
 > **Model-based and model-free replay mechanisms for reinforcement learning in neurorobotics** (2022, Submitted)   
@@ -27,14 +27,15 @@
 > _Paris, France_  
 > It contains codes and data used and generated for the part :  
 > **3 Simulation of individual replay strategies with an autonomously learned state decomposition**
+Keywords: `hippocampal replay`, `reinforcement learning`, `neurorobotics`, `model-based`, `model-free`
+
+Project Link: [https://github.com/esther-poniatowski/Massi2022](https://github.com/esther-poniatowski/Massi2022)
 
 To study the implications of offline learning in spatial navigation, from rodents' behavior to robotics, we have investigated the role of two Model Free (MF) - Reinforement Learning (RL) replay techniques in a circular maze, consistent with the original Morris water maze task (Morris, 1981) in terms of environment/robot size ratio. The learning performances of the analyzed replay techniques are tested here in two main conditions:
 A deterministic version of the task, where an action a performed in a state s will always lead the robot to the same arrival state s' with probability 1.
 A stochastic version of the task, where performing action a in state s is associated to non-null probabilities of arrival for more than one state.
 
-Project Link: [https://github.com/esther-poniatowski/Massi2022](https://github.com/esther-poniatowski/Massi2022)
 
-`github_username`, `repo_name`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description`
 
 ### Contriabutors & Contacts
 - [Elisa Massi](https://github.com/elimas9) - massi@isir.upmc.fr
