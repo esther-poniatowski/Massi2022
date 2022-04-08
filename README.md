@@ -37,14 +37,15 @@ To study the implications of offline learning in spatial navigation, from rodent
 The task of the agents mimicks the classical [Morris water maze task](http://www.scholarpedia.org/article/Morris_water_maze) [(Morris, 1981)](https://www.nature.com/articles/297681a0). The environment is defined by a circular maze, consistent with the original experimental paradigm in terms of environment/robot size ratio. The goal of the task is to navigate the environment until reaching the rewarded location, starting from a fixed initial point. Agents learn over 50 trials, and the reward location is changed at the middle of the simulation (trial 25). In this robotic framework, the task is a Markov decision problem (MDP), where agents visit discrete states, using a finite set of discrete actions.
 
 The learning performances of the agents are tested here in two main conditions:
-- In the deterministic version of the task, any action a performed in a given state will always lead the agent to the same arrival state (with probability 1).
-- In the stochastic version of the task, performing action in a given state can lead to is associated to more than one arrival state state (non-null probabilities for several states).
+- *Deterministic environment*: In this version of the task, any action a performed in a given state always leads the agent to the same arrival state (with probability 1).
+- *Stochastic environment*: In this version of the task, performing action in a given state can lead to distinct possible arrival state (non-null probabilities for several states).
 
 Four learning strategies are compared. Three of them include replays of the experienced state-action-state transitions during each inter-trial interval.
 - *Model Free (MF) No replay*: In this classical reinforcement learning framework, the artificial agent learns only online, during behavior.
 - *Model Free (MF) Backward replay*: This agents stores the most recent experienced state-action-state transitions in a memory buffer, and replays them from the more recent (rewarded) one to the most remote one.
 - *Model Free (MF) Backward replay*: This agents stores the most recent experienced state-action-state transitions in a memory buffer, and replays them in random order.
-- *Model BAsed (MB) Prioritized sweeping*: This agents stores the most recent experienced state-action-state transitions in a memory buffer, and replays them from the more recent (rewarded) one to the most remote one.
+- *Model Based (MB) Prioritized sweeping*: This agents stores the most recent experienced state-action-state transitions in a memory buffer, and replays them from the more recent (rewarded) one to the most remote one.
+*Note that one more replay strategy (Most diverse sequence replay) appears in the code, but is not investigated in the related article.*
 
 ### Contributors & Contacts
 
@@ -89,10 +90,15 @@ The following libraries are used:
 
 ### Modules
 
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+All the modules only contain functions (no script), which are called by the Jupyter notebooks.  
+More details about those modules and functions are available in the code documentation (accessed via `help()`).
+
+- [ ] `parameters_MF_MB.py` - Defines the parameters of the simulation. All the parameters are collected in a dictionary, which is provided to the main functions as a default argument (as the module is imported in the preamble of all other files).
+- [ ] `algorithms_MF_MB.py` - Implements the reinforcement learning procedure and the different replay strategies, necessary to perform one trial (behavior + replay).
+- [ ] `simulations_MF_MB.py`- Generates simulations of `n_individuals` (100) agents over `n_trials` (50) trials, in a given environmental condition (deterministic/stochastic). Saves data in the appropriate folder.
+- [ ] `analyzes_MF_MB.py` - Extract relevant features of the data: computes summary statistics, performs statistical analyses...
+- [ ] `figures_MF_MB` - Generates the main functions of the article.
+- [ ] `figures_indiv`, `figures_pop`, `figures_qvalue_map`, `figures_utils` - Other graphical functions to display results more flexibly in exploratory invesigations.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
