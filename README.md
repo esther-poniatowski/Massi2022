@@ -3,7 +3,9 @@
 <!-- PROJECT SHIELDS -->
 [![Contributors][contributors-shield]][contributors-url]
 
-<h3 align="center">Massi 2022 - Model-based and model-free replay mechanisms for reinforcement learning in neurorobotics</h3>
+<h3 align="center">
+  Massi 2022
+  Model-based and model-free replay mechanisms for reinforcement learning in neurorobotics</h3>
 </div>
 
 <!-- TABLE OF CONTENTS -->
@@ -72,7 +74,7 @@ The project is made up of the following files and directories :
 
 ### Requirements
 
-All codes are built in Python 3.
+All codes are built in Python 3 [https://img.shields.io/badge/Python-3-blue].
 The following libraries are used:
 - numpy
 - random
@@ -95,8 +97,8 @@ More details about those modules and functions are available in the code documen
 
 - [ ] `parameters_MF_MB.py` - Defines the parameters of the simulation. All the parameters are collected in a dictionary, which is provided to the main functions as a default argument (as the module is imported in the preamble of all other files).
 - [ ] `algorithms_MF_MB.py` - Implements the reinforcement learning procedure and the different replay strategies, necessary to perform one trial (behavior + replay).
-- [ ] `simulations_MF_MB.py`- Generates simulations of `n_individuals` (100) agents over `n_trials` (50) trials, in a given environmental condition (deterministic/stochastic). Saves data in the appropriate folder.
-- [ ] `analyzes_MF_MB.py` - Extract relevant features of the data: computes summary statistics, performs statistical analyses...
+- [ ] `simulations_MF_MB.py` - Generates simulations of `n_individuals` (100) agents over `n_trials` (50) trials, in a given environmental condition (deterministic/stochastic). Saves data in the appropriate folder.
+- [ ] `analyzes_MF_MB.py` - Extracts relevant features of the data: computes summary statistics, performs statistical analyses...
 - [ ] `figures_MF_MB` - Generates the main functions of the article.
 - [ ] `figures_indiv`, `figures_pop`, `figures_qvalue_map`, `figures_utils` - Other graphical functions to display results more flexibly in exploratory invesigations.
 
