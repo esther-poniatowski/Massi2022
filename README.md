@@ -26,15 +26,22 @@
 > _Institute of Intelligent Systems and Robotics, CNRS, Sorbonne University, F-75005_  
 > _Paris, France_  
 > It contains codes and data used and generated for the part :  
-> **3 Simulation of individual replay strategies with an autonomously learned state decomposition**
+> **3 Simulation of individual replay strategies with an autonomously learned state decomposition**  
 Keywords: `hippocampal replay`, `reinforcement learning`, `neurorobotics`, `model-based`, `model-free`
 
 Project Link: [https://github.com/esther-poniatowski/Massi2022](https://github.com/esther-poniatowski/Massi2022)
 
-To study the implications of offline learning in spatial navigation, from rodents' behavior to robotics, we have investigated the role of two Model Free (MF) - Reinforement Learning (RL) replay techniques in a circular maze, consistent with the original Morris water maze task (Morris, 1981) in terms of environment/robot size ratio. The learning performances of the analyzed replay techniques are tested here in two main conditions:
-A deterministic version of the task, where an action a performed in a state s will always lead the robot to the same arrival state s' with probability 1.
-A stochastic version of the task, where performing action a in state s is associated to non-null probabilities of arrival for more than one state.
+To study the implications of offline learning in spatial navigation, from rodents' behavior to robotics, this article investigated the role of several Reinforement Learning (RL) algorithms, by simulating artificial agents. 
+The task of the agents mimicks the classical [Morris water maze task](http://www.scholarpedia.org/article/Morris_water_maze) [(Morris, 1981)](https://www.nature.com/articles/297681a0). The environment is defined by a circular maze, consistent with the original experimental paradigm in terms of environment/robot size ratio. The goal of the task is to navigate the environment until reaching the rewarded location, starting from a fixed initial point. Agents learn over 50 trials, and the reward location is changed at the middle of the simulation (trial 25). In this robotic framework, the task is a Markov decision problem (MDP), where agents visit discrete states, using a finite set of discrete actions.
+The learning performances of the agents are tested here in two main conditions:
+- In the deterministic version of the task, any action a performed in a given state will always lead the agent to the same arrival state (with probability 1).
+- In the stochastic version of the task, performing action in a given state can lead to is associated to more than one arrival state state (non-null probabilities for several states).
 
+Four learning strategies are compared. Three of them include replays of the experienced state-action-state transitions during each inter-trial interval.
+- *Model Free (MF) No replay*: In this classical reinforcement learning framework, the artificial agent learns only online, during behavior.
+- *Model Free (MF) Backward replay*: This agents stores the most recent experienced state-action-state transitions in a memory buffer, and replays them from the more recent (rewarded) one to the most remote one.
+- *Model Free (MF) Backward replay*: This agents stores the most recent experienced state-action-state transitions in a memory buffer, and replays them in random order.
+- *Model BAsed (MB) Prioritized sweeping*: This agents stores the most recent experienced state-action-state transitions in a memory buffer, and replays them from the more recent (rewarded) one to the most remote one.
 
 
 ### Contriabutors & Contacts
