@@ -71,7 +71,7 @@ The project is made up of the following files and directories :
 
 ### Requirements
 
-All codes are built in [![shield]].
+All codes are built in [![shield]] ![shield].
 The following libraries are used:
 - numpy
 - random
