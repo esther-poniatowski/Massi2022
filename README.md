@@ -33,6 +33,7 @@ Project Link: [https://github.com/esther-poniatowski/Massi2022](https://github.c
 
 To study the implications of offline learning in spatial navigation, from rodents' behavior to robotics, this article investigated the role of several Reinforement Learning (RL) algorithms, by simulating artificial agents. 
 The task of the agents mimicks the classical [Morris water maze task](http://www.scholarpedia.org/article/Morris_water_maze) [(Morris, 1981)](https://www.nature.com/articles/297681a0). The environment is defined by a circular maze, consistent with the original experimental paradigm in terms of environment/robot size ratio. The goal of the task is to navigate the environment until reaching the rewarded location, starting from a fixed initial point. Agents learn over 50 trials, and the reward location is changed at the middle of the simulation (trial 25). In this robotic framework, the task is a Markov decision problem (MDP), where agents visit discrete states, using a finite set of discrete actions.
+
 The learning performances of the agents are tested here in two main conditions:
 - In the deterministic version of the task, any action a performed in a given state will always lead the agent to the same arrival state (with probability 1).
 - In the stochastic version of the task, performing action in a given state can lead to is associated to more than one arrival state state (non-null probabilities for several states).
@@ -43,16 +44,18 @@ Four learning strategies are compared. Three of them include replays of the expe
 - *Model Free (MF) Backward replay*: This agents stores the most recent experienced state-action-state transitions in a memory buffer, and replays them in random order.
 - *Model BAsed (MB) Prioritized sweeping*: This agents stores the most recent experienced state-action-state transitions in a memory buffer, and replays them from the more recent (rewarded) one to the most remote one.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 
 ### Contriabutors & Contacts
 - [Elisa Massi](https://github.com/elimas9) - massi@isir.upmc.fr
 - [Esther Poniatowski](https://github.com/esther-poniatowski) - eponiatowski@clipper.ens.psl.eu
 - [Juliane Mailly](https://github.com/julianemailly) 
 
-
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### Requirements
+
+## Requirements
 
 This code is build with Python 3.
 It uses the following libraries:
@@ -72,10 +75,23 @@ It uses the following libraries:
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-<!-- USAGE EXAMPLES -->
 ## Usage
 
-Three Jupyter notebooks are designed to 
+Architecture of the project
+
+The project contains the following files and directories :
+- [ ] Two Jupyter notebooks guide the execution of the main functionalities. 
+  - [ ] `Navigation_generate_data.ipynb` can be used to generate data, with arbitrary parameters and different versions of the task.
+  - [ ] `Navigation_alanysis.ipynb` provides graphical visualization of the results, reproducing in particular the figures of the article.
+- [ ] Nine python files correspond to the modules called by the Jupyter notebooks.
+
+Modules
+
+Usage
+
+[click on this link](#my-multi-word-header)
+
+### My Multi Word Header
 
 * npm
   ```sh
