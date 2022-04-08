@@ -1,8 +1,5 @@
 <div id="top"></div>
 
-<!-- PROJECT SHIELDS -->
-[![Contributors][shield]]
-
 <h3 align="center">
   Massi 2022
   Model-based and model-free replay mechanisms for reinforcement learning in neurorobotics</h3>
@@ -74,7 +71,7 @@ The project is made up of the following files and directories :
 
 ### Requirements
 
-All codes are built in Python 3 [https://img.shields.io/badge/Python-3-blue].
+All codes are built in Python 3 [shield].
 The following libraries are used:
 - numpy
 - random
