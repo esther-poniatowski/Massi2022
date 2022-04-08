@@ -31,12 +31,12 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-> This repository is related to the article : 
-> **Model-based and model-free replay mechanisms for reinforcement learning in neurorobotics** (2022, Submitted)
-> Elisa Massi, Remi Dromnelle, Julianne Mailly, Jeanne Barthéléemy, Julien Canitrot, Esther Poniatowski, Benoît Girard and Mehdi Khamassi.  
-> *Institute of Intelligent Systems and Robotics, CNRS, Sorbonne University, F-75005*
-> *Paris, France*
-> It contains codes and data used and generated for the part :
+> This repository is related to the article :  
+> **Model-based and model-free replay mechanisms for reinforcement learning in neurorobotics** (2022, Submitted)   
+> Elisa Massi, Remi Dromnelle, Julianne Mailly, Jeanne Barthéléemy, Julien Canitrot, Esther Poniatowski, Benoît Girard and Mehdi Khamassi.   
+> _Institute of Intelligent Systems and Robotics, CNRS, Sorbonne University, F-75005_  
+> _Paris, France_  
+> It contains codes and data used and generated for the part :  
 > **3 Simulation of individual replay strategies with an autonomously learned state decomposition**
 
 To study the implications of offline learning in spatial navigation, from rodents' behavior to robotics, we have investigated the role of two Model Free (MF) - Reinforement Learning (RL) replay techniques in a circular maze, consistent with the original Morris water maze task (Morris, 1981) in terms of environment/robot size ratio. The learning performances of the analyzed replay techniques are tested here in two main conditions:
