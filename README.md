@@ -11,10 +11,10 @@ Massi 2022
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#about the project">About the Project</a>
+      <a href="#about-the-project">About the Project</a>
       <ul>
-        <li><a href="##goals">Goals of the modeling</a></li>
-        <li><a href="##contributors">Contributors & Contacts</a></li>
+        <li><a href="##goals-of-the-modeling">Goals of the modeling</a></li>
+        <li><a href="##contributors-&-contacts">Contributors & Contacts</a></li>
       </ul>
     </li>
     <li>
@@ -92,7 +92,7 @@ The project is made up of the following files and directories :
 - [ ] Two Jupyter notebooks guide the execution of the main functionalities. 
   - `Navigation_generate_data.ipynb` can be used to generate data, with arbitrary parameters and different versions of the task.
   - `Navigation_alanysis.ipynb` provides graphical visualization of the results, reproducing in particular the figures of the article.
-- [ ] Nine python files correspond to the [modules]("##modules") called by the Jupyter notebooks.
+- [ ] Nine python files correspond to the [modules](##modules) called by the Jupyter notebooks.
 - [ ] The folder `Data/` is the location where generated data are stored. called by the Jupyter notebooks.
   - It aready contains most of the data files required to plot the figures from the Jupyter notebooks. Files' formats are either `.csv` (for dataframes) or `.pickle` (for dictionaries, arrays, lists).
   - The sub-folder `Data_indiv/` specifically contains detailed data for 100 individual artificial agents.
