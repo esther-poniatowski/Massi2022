@@ -1,21 +1,32 @@
 <div id="top"></div>
 
-<h3 align="center">
-  Massi 2022
+
+Massi 2022
+==============
+<h3 align="left">
   Model-based and model-free replay mechanisms for reinforcement learning in neurorobotics</h3>
 </div>
 
-<!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li><a href="#about-the-project">About The Project</a></li>
-    <li><a href="#contributors">Contributors & Contacts</a></li>
-    <li><a href="#requirements">Requirements</a></li>
-    <li><a href="#usage">Usage</a></li>
+    <li>
+      <a href="#about the project">About the Project</a>
+      <ul>
+        <li><a href="##goals">Goals of the modeling</a></li>
+        <li><a href="##contributors">Contributors & Contacts</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#usage">Usage</a>
+      <ul>
+        <li><a href="##requirements">Requirements</a></li>
+        <li><a href="##structure">Structure of the project</a></li>
+        <li><a href="##modules">Modules</a></li>
+      </ul>
+    </li>
   </ol>
 </details>
-
 
 ## About the Project
 
@@ -57,21 +68,9 @@ Four learning strategies are compared. Three of them include replays of the expe
 
 ## Usage
 
-### Architecture of the project
-
-The project is made up of the following files and directories :
-- [ ] Two Jupyter notebooks guide the execution of the main functionalities. 
-  - `Navigation_generate_data.ipynb` can be used to generate data, with arbitrary parameters and different versions of the task.
-  - `Navigation_alanysis.ipynb` provides graphical visualization of the results, reproducing in particular the figures of the article.
-- [ ] Nine python files correspond to the [modules](### Modules) called by the Jupyter notebooks.
-- [ ] The folder `Data/` is the location where generated data are stored. called by the Jupyter notebooks.
-  - It aready contains most of the data files required to plot the figures from the Jupyter notebooks. Files' formats are either `.csv` (for dataframes) or `.pickle` (for dictionaries, arrays, lists).
-  - The sub-folder `Data_indiv/` specifically contains detailed data for 100 individual artificial agents.
-- [ ] The folder `Figures/` is the location where generated figures can be saved. It already contains the file `map1.pgm` necessary to plot one type of figure, representing the environment.
-
 ### Requirements
 
-All codes are built in [![shield]] ![shield].
+All codes are built in ![shield].
 The following libraries are used:
 - numpy
 - random
@@ -86,6 +85,18 @@ The following libraries are used:
 - pickle
 - matplotlib
 - seaborn
+
+### Architecture of the project
+
+The project is made up of the following files and directories :
+- [ ] Two Jupyter notebooks guide the execution of the main functionalities. 
+  - `Navigation_generate_data.ipynb` can be used to generate data, with arbitrary parameters and different versions of the task.
+  - `Navigation_alanysis.ipynb` provides graphical visualization of the results, reproducing in particular the figures of the article.
+- [ ] Nine python files correspond to the [modules]("##modules") called by the Jupyter notebooks.
+- [ ] The folder `Data/` is the location where generated data are stored. called by the Jupyter notebooks.
+  - It aready contains most of the data files required to plot the figures from the Jupyter notebooks. Files' formats are either `.csv` (for dataframes) or `.pickle` (for dictionaries, arrays, lists).
+  - The sub-folder `Data_indiv/` specifically contains detailed data for 100 individual artificial agents.
+- [ ] The folder `Figures/` is the location where generated figures can be saved. It already contains the file `map1.pgm` necessary to plot one type of figure, representing the environment.
 
 ### Modules
 
