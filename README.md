@@ -65,13 +65,9 @@ Four learning strategies are compared. Three of them include replays of the expe
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+## Requirements
 
-## Usage
-
-### Requirements
-
-All codes are built in ![shield].
-The following libraries are used:
+All codes are built in ![shield] and uses the following libraries:
 - numpy
 - random
 - bisect
@@ -87,7 +83,17 @@ The following libraries are used:
 - seaborn
 
 Those packages can be installes by the following command:
-```pip install -r requirements.txt```
+```
+pip install -r requirements.txt
+```
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+
+## Usage
+
+> **INFO**  
+> 
+> More details are provided in the Jupyter notebooks and the code comments.
 
 ### Architecture of the project
 
