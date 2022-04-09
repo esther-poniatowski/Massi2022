@@ -18,9 +18,10 @@ Massi 2022
       </ul>
     </li>
     <li>
+      <a href="#requirements">Requirements</a>
+    <li>
       <a href="#usage">Usage</a>
       <ul>
-        <li><a href="##requirements">Requirements</a></li>
         <li><a href="##structure">Structure of the project</a></li>
         <li><a href="##modules">Modules</a></li>
       </ul>
@@ -95,7 +96,7 @@ pip install -r requirements.txt
 > 
 > More details are provided in the Jupyter notebooks and the code comments.
 
-### Architecture of the project
+### Structure of the project
 
 The project is made up of the following files and directories :
 - [ ] Two Jupyter notebooks guide the execution of the main functionalities. 
@@ -111,10 +112,10 @@ The project is made up of the following files and directories :
 <a id="id"></a>
 ### Modules
 
-All the modules only contain functions (no script), which are called by the Jupyter notebooks.  
+Except for the module `parameters_MF_MB.py`, all the modules only contain functions (no script), which are called by the Jupyter notebooks.  
 More details about those modules and functions are available in the code documentation (accessed via `help()`).
 
-- [ ] `parameters_MF_MB.py` - Defines the parameters of the simulation. All the parameters are collected in a dictionary, which is provided to the main functions as a default argument (as the module is imported in the preamble of all other files).
+- [ ] `parameters_MF_MB.py` - Defines the parameters of the simulation and the transition matrices. All the parameters are collected in a dictionary, which is provided to the main functions as a default argument (as the module is imported in the preamble of all other files).
 - [ ] `algorithms_MF_MB.py` - Implements the reinforcement learning procedure and the different replay strategies, necessary to perform one trial (behavior + replay).
 - [ ] `simulations_MF_MB.py` - Generates simulations of `n_individuals` (100) agents over `n_trials` (50) trials, in a given environmental condition (deterministic/stochastic). Saves data in the appropriate folder.
 - [ ] `analyzes_MF_MB.py` - Extracts relevant features of the data: computes summary statistics, performs statistical analyses...
