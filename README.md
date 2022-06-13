@@ -32,7 +32,7 @@ Massi 2022
 ## About the Project
 
 > This repository is related to the article :  
-> **Model-based and model-free replay mechanisms for reinforcement learning in neurorobotics** (2022, Submitted)   
+> **Model-based and model-free replay mechanisms for reinforcement learning in neurorobotics** (2022, Accepted)   
 > Elisa Massi, Remi Dromnelle, Julianne Mailly, Jeanne Barthéléemy, Julien Canitrot, Esther Poniatowski, Benoît Girard and Mehdi Khamassi.   
 > _Institute of Intelligent Systems and Robotics, CNRS, Sorbonne University, F-75005_  
 > _Paris, France_  
@@ -108,6 +108,8 @@ The project is made up of the following files and directories :
   - The sub-folder `Data_indiv/` specifically contains detailed data for 100 individual artificial agents.
 - [ ] The folder `Figures/` is the location where generated figures can be saved. It already contains the file `map1.pgm` necessary to plot one type of figure, representing the environment.
 - [ ] Three `.txt` files contain the transition matrices which define the properties of the environment. 
+- [ ] The folder `data+code_2generate_the_paper_figures/` contains all the data and the scripts to generate what is needed for the figures in the paper in Sect.3.
+
 
 <a id="id"></a>
 ### Modules
